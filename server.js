@@ -510,6 +510,8 @@ app.post('/api/:entity/bulk', async (req, res) => {
     } finally {
         client.release();
     }
+});
+
 // ==========================================
 // DYNAMIC DELETE ENDPOINT FOR ALL ENTITIES
 // ==========================================
