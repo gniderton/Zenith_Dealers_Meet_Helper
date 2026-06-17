@@ -68,7 +68,6 @@ async function run() {
                 const channel_name = row.channel_name || row["Channel Name"];
                 const whatsapp_number = row.whatsapp_number || row["WhatsApp Number"];
                 
-                // Parse helper that handles nulls/NaNs properly
                 const parseNum = (val, defaultVal) => {
                     if (val === null || val === undefined || val === '') return defaultVal;
                     const parsed = parseFloat(val);
@@ -136,24 +135,14 @@ async function run() {
                     }
                 }
                 if (!matchFound) {
-                    const seqRes = await client.query(`
-                        UPDATE document_sequences SET current_number = current_number + 1 WHERE document_type = 'CUSTOMER' RETURNING prefix, current_number
-                    `);
-                    let custCode = '';
-                    if (seqRes.rows.length > 0) {
-                        custCode = `${seqRes.rows[0].prefix || ''}${String(seqRes.rows[0].current_number).padStart(4, '0')}`;
-                    } else {
-                        custCode = `CUST-${Date.now().toString().substring(8)}`;
-                    }
-
                     await client.query(
                         `INSERT INTO customers (
                             customer_name, customer_phone, email, gstin, pan,
                             route_id, employee_id, channel_id, whatsapp_number,
                             credit_limit, credit_days, default_price_tier,
-                            latitude, longitude, is_active, customer_code
-                         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
-                        [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, credit_limit, credit_days, default_price_tier, latitude || null, longitude || null, is_active, custCode]
+                            latitude, longitude, is_active
+                         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+                        [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, credit_limit, credit_days, default_price_tier, latitude || null, longitude || null, is_active]
                     );
                     insertedCount++;
                 }
