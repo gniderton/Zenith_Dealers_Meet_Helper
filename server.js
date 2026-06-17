@@ -654,9 +654,8 @@ app.post('/api/:entity/bulk', async (req, res) => {
                     const id = row.id || row.ID || row["ID (Only for updates)"];
                     const route_name = row.route_name || row["Route Name"];
                     const description = row.description || row.Description;
-                    const service_day = row.service_day || row["Service Day"];
-                    const rawActive = row.is_active || row["Is Active"];
-                    const is_active = rawActive !== undefined ? (rawActive === 'Yes' || rawActive === true || rawActive === 'true' || rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'active') : true;
+                    const rawActive = row.is_active || row["Is Active"] || row.status || row.Status;
+                    const status = (rawActive === 'Yes' || rawActive === true || rawActive === 'true' || rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'active') ? 'Active' : 'Inactive';
 
                     if (!route_name) throw new Error('Route Name is missing');
 
@@ -669,8 +668,8 @@ app.post('/api/:entity/bulk', async (req, res) => {
                         const check = await client.query('SELECT id FROM routes WHERE id = $1', [id]);
                         if (check.rows.length > 0) {
                             await client.query(
-                                `UPDATE routes SET route_name = $1, description = $2, service_day = $3, is_active = $4 WHERE id = $5`,
-                                [route_name, description || null, service_day || null, is_active, id]
+                                `UPDATE routes SET route_name = $1, description = $2, status = $3 WHERE id = $4`,
+                                [route_name, description || null, status, id]
                             );
                             updatedCount++;
                             matchFound = true;
@@ -680,8 +679,8 @@ app.post('/api/:entity/bulk', async (req, res) => {
                         const check = await client.query('SELECT id FROM routes WHERE route_name = $1', [route_name]);
                         if (check.rows.length > 0) {
                             await client.query(
-                                `UPDATE routes SET description = $1, service_day = $2, is_active = $3 WHERE route_name = $4`,
-                                [description || null, service_day || null, is_active, route_name]
+                                `UPDATE routes SET description = $1, status = $2 WHERE route_name = $3`,
+                                [description || null, status, route_name]
                             );
                             updatedCount++;
                             matchFound = true;
@@ -689,8 +688,8 @@ app.post('/api/:entity/bulk', async (req, res) => {
                     }
                     if (!matchFound) {
                         await client.query(
-                            `INSERT INTO routes (route_name, description, service_day, is_active) VALUES ($1, $2, $3, $4)`,
-                            [route_name, description || null, service_day || null, is_active]
+                            `INSERT INTO routes (route_name, description, status) VALUES ($1, $2, $3)`,
+                            [route_name, description || null, status]
                         );
                         insertedCount++;
                     }

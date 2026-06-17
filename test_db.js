@@ -12,9 +12,9 @@ async function run() {
         const res = await pool.query(`
             SELECT column_name, data_type 
             FROM information_schema.columns 
-            WHERE table_name = 'customers'
+            WHERE table_name = 'routes'
         `);
-        console.log("Customers Table Columns:");
+        console.log("Routes Table Columns:");
         console.table(res.rows);
     } catch (err) {
         console.error("Failed:", err.message);
