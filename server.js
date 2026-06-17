@@ -36,188 +36,16 @@ pool.query('SELECT NOW()', (err, res) => {
     }
 });
 
-// --- API ROUTES ---
-
-// 1. Get health status
-app.get('/health', (req, res) => {
-    res.json({ status: 'UP', timestamp: new Date() });
-});
-
-// 2. Brands Template Download Endpoint
-// GET /api/brands/template - Downloads Excel template
-app.get('/api/brands/template', (req, res) => {
-    try {
-        // Create headers and one example row
-        const templateData = [
-            {
-                "ID (Only for updates)": "",
-                "Brand Name": "Example Brand",
-                "Brand Code (Only for updates)": "",
-                "Description": "This is an optional description of the brand",
-                "Logo URL": "https://example.com/logo.png",
-                "Status": "Active"
-            }
-        ];
-
-        // Create workbook and worksheet
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(templateData);
-        XLSX.utils.book_append_sheet(wb, ws, "Brands Template");
-
-        // Write to buffer
-        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-
-        // Set response headers to force download
-        res.setHeader('Content-Disposition', 'attachment; filename="brands_template.xlsx"');
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.send(buffer);
-    } catch (err) {
-        res.status(500).json({ error: 'Failed to generate template: ' + err.message });
-    }
-});
-
-// 3. Brands Bulk Upload Endpoint
-// POST /api/brands/upload - Parses uploaded CSV or Excel file and inserts/updates brands
-app.post('/api/brands/upload', upload.single('file'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'Please upload a CSV or Excel file (.csv, .xlsx, .xls)' });
-    }
-
-    const client = await pool.connect();
-    try {
-        // Read workbook from file buffer
-        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        
-        // Parse sheet to JSON array
-        const rawRows = XLSX.utils.sheet_to_json(worksheet);
-        
-        if (rawRows.length === 0) {
-            return res.status(400).json({ error: 'The uploaded file is empty' });
-        }
-
-        let insertedCount = 0;
-        let updatedCount = 0;
-        let errors = [];
-
-        await client.query('BEGIN');
-
-        for (let index = 0; index < rawRows.length; index++) {
-            const row = rawRows[index];
-            const rowNumber = index + 2; // Row offset (header is row 1)
-
-            // Extract values using various header naming variations
-            const id = row["ID (Only for updates)"] || row["id"] || row["ID"];
-            const brand_name = row["Brand Name"] || row["brand_name"] || row["BrandName"];
-            const brand_code = row["Brand Code (Only for updates)"] || row["brand_code"] || row["BrandCode"];
-            const description = row["Description"] || row["description"];
-            const logo_url = row["Logo URL"] || row["logo_url"] || row["LogoUrl"];
-            const status = row["Status"] || row["status"] || 'Active';
-
-            if (!brand_name) {
-                errors.push({ row: rowNumber, error: 'Brand Name is missing' });
-                continue;
-            }
-
-            try {
-                let matchFound = false;
-
-                // 1. Match by ID if provided
-                if (id && /^\d+$/.test(id)) {
-                    const checkId = await client.query('SELECT id FROM brands WHERE id = $1', [id]);
-                    if (checkId.rows.length > 0) {
-                        await client.query(
-                            `UPDATE brands 
-                             SET brand_name = $1, description = $2, logo_url = $3, status = $4, updated_at = CURRENT_TIMESTAMP
-                             WHERE id = $5`,
-                            [brand_name, description || null, logo_url || null, status, id]
-                        );
-                        updatedCount++;
-                        matchFound = true;
-                    }
-                }
-
-                // 2. Match by Brand Code if provided
-                if (!matchFound && brand_code) {
-                    const checkCode = await client.query('SELECT id FROM brands WHERE brand_code = $1', [brand_code]);
-                    if (checkCode.rows.length > 0) {
-                        await client.query(
-                            `UPDATE brands 
-                             SET brand_name = $1, description = $2, logo_url = $3, status = $4, updated_at = CURRENT_TIMESTAMP
-                             WHERE brand_code = $5`,
-                            [brand_name, description || null, logo_url || null, status, brand_code]
-                        );
-                        updatedCount++;
-                        matchFound = true;
-                    }
-                }
-
-                // 3. Match by Brand Name
-                if (!matchFound) {
-                    const checkName = await client.query('SELECT id FROM brands WHERE brand_name = $1', [brand_name]);
-                    if (checkName.rows.length > 0) {
-                        await client.query(
-                            `UPDATE brands 
-                             SET description = $1, logo_url = $2, status = $3, updated_at = CURRENT_TIMESTAMP
-                             WHERE brand_name = $4`,
-                            [description || null, logo_url || null, status, brand_name]
-                        );
-                        updatedCount++;
-                        matchFound = true;
-                    }
-                }
-
-                // 4. If no match, insert as new brand
-                if (!matchFound) {
-                    await client.query(
-                        `INSERT INTO brands (brand_name, description, logo_url, status) 
-                         VALUES ($1, $2, $3, $4)`,
-                        [brand_name, description || null, logo_url || null, status]
-                    );
-                    insertedCount++;
-                }
-            } catch (rowErr) {
-                errors.push({ row: rowNumber, brand: brand_name, error: rowErr.message });
-            }
-        }
-
-        await client.query('COMMIT');
-
-        res.json({
-            message: 'Bulk processing completed',
-            summary: {
-                totalRows: rawRows.length,
-                inserted: insertedCount,
-                updated: updatedCount,
-                failed: errors.length
-            },
-            errors: errors.length > 0 ? errors : null
-        });
-
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: 'Transaction failed: ' + err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// 4. Brands Bulk JSON Upload Endpoint (for client-side parsed array upserts)
-// POST /api/brands/bulk - Processes JSON array of brands
-app.post('/api/brands/bulk', async (req, res) => {
-    let brands = req.body;
-    console.log("Received bulk brands payload:", JSON.stringify(brands, null, 2));
-    
-    // Auto-detect and parse raw Appsmith 2D array format:
-    // [{ name: "Sheet1", data: [[headers], [row1], [row2]] }]
-    if (Array.isArray(brands) && brands.length === 1 && brands[0].data && Array.isArray(brands[0].data)) {
-        console.log("Detected raw 2D array payload, parsing on backend...");
-        const sheetData = brands[0].data;
+// Helper Function: Auto-detect and parse raw Appsmith 2D array format:
+// [{ name: "Sheet1", data: [[headers], [row1], [row2]] }]
+function parseRaw2DArray(body) {
+    if (Array.isArray(body) && body.length === 1 && body[0].data && Array.isArray(body[0].data)) {
+        console.log("Detected raw 2D array payload, parsing it...");
+        const sheetData = body[0].data;
         if (sheetData.length >= 2) {
             const headers = sheetData[0];
             const rows = sheetData.slice(1);
-            brands = rows.map(row => {
+            return rows.map(row => {
                 let obj = {};
                 headers.forEach((header, index) => {
                     obj[header] = row[index];
@@ -226,9 +54,33 @@ app.post('/api/brands/bulk', async (req, res) => {
             });
         }
     }
+    return body;
+}
 
-    if (!Array.isArray(brands)) {
-        return res.status(400).json({ error: 'Expected a JSON array of brands' });
+// --- GENERAL ROUTES ---
+app.get('/health', (req, res) => {
+    res.json({ status: 'UP', timestamp: new Date() });
+});
+
+// ==========================================
+// 1. BRANDS ENDPOINTS
+// ==========================================
+
+// GET /api/brands - Get all brands
+app.get('/api/brands', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM brands ORDER BY id DESC');
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/brands/bulk - Bulk import (accepts JSON array of objects or raw Appsmith 2D sheets)
+app.post('/api/brands/bulk', async (req, res) => {
+    const rawBody = parseRaw2DArray(req.body);
+    if (!Array.isArray(rawBody)) {
+        return res.status(400).json({ error: 'Expected an array' });
     }
 
     const client = await pool.connect();
@@ -239,11 +91,10 @@ app.post('/api/brands/bulk', async (req, res) => {
 
         await client.query('BEGIN');
 
-        for (let index = 0; index < brands.length; index++) {
-            const row = brands[index];
+        for (let index = 0; index < rawBody.length; index++) {
+            const row = rawBody[index];
             const rowNumber = index + 1;
 
-            // Extract values supporting various key cases
             const id = row.id || row.ID || row["ID (Only for updates)"];
             const brand_name = row.brand_name || row["Brand Name"] || row.BrandName;
             const brand_code = row.brand_code || row["Brand Code (Only for updates)"] || row.BrandCode;
@@ -259,181 +110,547 @@ app.post('/api/brands/bulk', async (req, res) => {
             try {
                 let matchFound = false;
 
-                // 1. Match by ID if provided
+                // Match by ID
                 if (id && /^\d+$/.test(id)) {
-                    const checkId = await client.query('SELECT id FROM brands WHERE id = $1', [id]);
-                    if (checkId.rows.length > 0) {
+                    const check = await client.query('SELECT id FROM brands WHERE id = $1', [id]);
+                    if (check.rows.length > 0) {
                         await client.query(
-                            `UPDATE brands 
-                             SET brand_name = $1, description = $2, logo_url = $3, status = $4, updated_at = CURRENT_TIMESTAMP
-                             WHERE id = $5`,
+                            `UPDATE brands SET brand_name = $1, description = $2, logo_url = $3, status = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5`,
                             [brand_name, description || null, logo_url || null, status, id]
                         );
                         updatedCount++;
                         matchFound = true;
                     }
                 }
-
-                // 2. Match by Brand Code if provided
+                // Match by Code
                 if (!matchFound && brand_code) {
-                    const checkCode = await client.query('SELECT id FROM brands WHERE brand_code = $1', [brand_code]);
-                    if (checkCode.rows.length > 0) {
+                    const check = await client.query('SELECT id FROM brands WHERE brand_code = $1', [brand_code]);
+                    if (check.rows.length > 0) {
                         await client.query(
-                            `UPDATE brands 
-                             SET brand_name = $1, description = $2, logo_url = $3, status = $4, updated_at = CURRENT_TIMESTAMP
-                             WHERE brand_code = $5`,
+                            `UPDATE brands SET brand_name = $1, description = $2, logo_url = $3, status = $4, updated_at = CURRENT_TIMESTAMP WHERE brand_code = $5`,
                             [brand_name, description || null, logo_url || null, status, brand_code]
                         );
                         updatedCount++;
                         matchFound = true;
                     }
                 }
-
-                // 3. Match by Brand Name
+                // Match by Name
                 if (!matchFound) {
-                    const checkName = await client.query('SELECT id FROM brands WHERE brand_name = $1', [brand_name]);
-                    if (checkName.rows.length > 0) {
+                    const check = await client.query('SELECT id FROM brands WHERE brand_name = $1', [brand_name]);
+                    if (check.rows.length > 0) {
                         await client.query(
-                            `UPDATE brands 
-                             SET description = $1, logo_url = $2, status = $3, updated_at = CURRENT_TIMESTAMP
-                             WHERE brand_name = $4`,
+                            `UPDATE brands SET description = $1, logo_url = $2, status = $3, updated_at = CURRENT_TIMESTAMP WHERE brand_name = $4`,
                             [description || null, logo_url || null, status, brand_name]
                         );
                         updatedCount++;
                         matchFound = true;
                     }
                 }
-
-                // 4. If no match, insert as new brand
+                // Insert new
                 if (!matchFound) {
                     await client.query(
-                        `INSERT INTO brands (brand_name, description, logo_url, status) 
-                         VALUES ($1, $2, $3, $4)`,
+                        `INSERT INTO brands (brand_name, description, logo_url, status) VALUES ($1, $2, $3, $4)`,
                         [brand_name, description || null, logo_url || null, status]
                     );
                     insertedCount++;
                 }
-            } catch (rowErr) {
-                errors.push({ row: rowNumber, brand: brand_name, error: rowErr.message });
+            } catch (err) {
+                errors.push({ row: rowNumber, error: err.message });
             }
         }
 
         await client.query('COMMIT');
-
-        res.json({
-            message: 'Bulk processing completed',
-            summary: {
-                totalRows: brands.length,
-                inserted: insertedCount,
-                updated: updatedCount,
-                failed: errors.length
-            },
-            errors: errors.length > 0 ? errors : null
-        });
-
+        res.json({ message: 'Success', summary: { totalRows: rawBody.length, inserted: insertedCount, updated: updatedCount, failed: errors.length }, errors: errors.length > 0 ? errors : null });
     } catch (err) {
         await client.query('ROLLBACK');
-        res.status(500).json({ error: 'Transaction failed: ' + err.message });
+        res.status(500).json({ error: err.message });
     } finally {
         client.release();
     }
 });
 
-// 5. Brands CRUD Endpoints
+// ==========================================
+// 2. CATEGORIES ENDPOINTS
+// ==========================================
 
-// GET /api/brands - Get all brands
-app.get('/api/brands', async (req, res) => {
+// GET /api/categories
+app.get('/api/categories', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM brands ORDER BY id DESC');
+        const result = await pool.query('SELECT * FROM categories ORDER BY id DESC');
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// GET /api/brands/:id - Get a single brand by ID or brand_code
-app.get('/api/brands/:id', async (req, res) => {
-    const { id } = req.params;
+// POST /api/categories/bulk
+app.post('/api/categories/bulk', async (req, res) => {
+    const rawBody = parseRaw2DArray(req.body);
+    if (!Array.isArray(rawBody)) return res.status(400).json({ error: 'Expected an array' });
+
+    const client = await pool.connect();
     try {
-        let result;
-        if (/^\d+$/.test(id)) {
-            result = await pool.query('SELECT * FROM brands WHERE id = $1', [id]);
-        } else {
-            result = await pool.query('SELECT * FROM brands WHERE brand_code = $1', [id]);
+        let insertedCount = 0;
+        let updatedCount = 0;
+        let errors = [];
+
+        await client.query('BEGIN');
+
+        for (let index = 0; index < rawBody.length; index++) {
+            const row = rawBody[index];
+            const rowNumber = index + 1;
+
+            const id = row.id || row.ID || row["ID (Only for updates)"];
+            const category_name = row.category_name || row["Category Name"] || row.CategoryName;
+            const category_code = row.category_code || row["Category Code (Only for updates)"] || row.CategoryCode;
+            const description = row.description || row.Description;
+            const status = row.status || row.Status || 'Active';
+
+            if (!category_name) {
+                errors.push({ row: rowNumber, error: 'Category Name is missing' });
+                continue;
+            }
+
+            try {
+                let matchFound = false;
+
+                if (id && /^\d+$/.test(id)) {
+                    const check = await client.query('SELECT id FROM categories WHERE id = $1', [id]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE categories SET category_name = $1, description = $2, status = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
+                            [category_name, description || null, status, id]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound && category_code) {
+                    const check = await client.query('SELECT id FROM categories WHERE category_code = $1', [category_code]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE categories SET category_name = $1, description = $2, status = $3, updated_at = CURRENT_TIMESTAMP WHERE category_code = $4`,
+                            [category_name, description || null, status, category_code]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound) {
+                    const check = await client.query('SELECT id FROM categories WHERE category_name = $1', [category_name]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE categories SET description = $1, status = $2, updated_at = CURRENT_TIMESTAMP WHERE category_name = $3`,
+                            [description || null, status, category_name]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound) {
+                    await client.query(
+                        `INSERT INTO categories (category_name, description, status) VALUES ($1, $2, $3)`,
+                        [category_name, description || null, status]
+                    );
+                    insertedCount++;
+                }
+            } catch (err) {
+                errors.push({ row: rowNumber, error: err.message });
+            }
         }
-        
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Brand not found' });
-        }
-        res.json(result.rows[0]);
+
+        await client.query('COMMIT');
+        res.json({ message: 'Success', summary: { totalRows: rawBody.length, inserted: insertedCount, updated: updatedCount, failed: errors.length }, errors: errors.length > 0 ? errors : null });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// ==========================================
+// 3. CHANNELS ENDPOINTS
+// ==========================================
+
+// GET /api/channels
+app.get('/api/channels', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM channels ORDER BY id DESC');
+        res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// POST /api/brands - Create a new brand manually
-app.post('/api/brands', async (req, res) => {
-    const { brand_name, description, logo_url, status } = req.body;
-    
-    if (!brand_name) {
-        return res.status(400).json({ error: 'Brand name is required' });
-    }
+// POST /api/channels/bulk
+app.post('/api/channels/bulk', async (req, res) => {
+    const rawBody = parseRaw2DArray(req.body);
+    if (!Array.isArray(rawBody)) return res.status(400).json({ error: 'Expected an array' });
 
+    const client = await pool.connect();
     try {
-        const result = await pool.query(
-            `INSERT INTO brands (brand_name, description, logo_url, status) 
-             VALUES ($1, $2, $3, $4) RETURNING *`,
-            [brand_name, description || null, logo_url || null, status || 'Active']
-        );
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        if (err.code === '23505') {
-            return res.status(400).json({ error: 'Brand name already exists' });
+        let insertedCount = 0;
+        let updatedCount = 0;
+        let errors = [];
+
+        await client.query('BEGIN');
+
+        for (let index = 0; index < rawBody.length; index++) {
+            const row = rawBody[index];
+            const rowNumber = index + 1;
+
+            const id = row.id || row.ID || row["ID (Only for updates)"];
+            const channel_name = row.channel_name || row["Channel Name"] || row.ChannelName;
+            const channel_code = row.channel_code || row["Channel Code (Only for updates)"] || row.ChannelCode;
+            const description = row.description || row.Description;
+            const status = row.status || row.Status || 'Active';
+
+            if (!channel_name) {
+                errors.push({ row: rowNumber, error: 'Channel Name is missing' });
+                continue;
+            }
+
+            try {
+                let matchFound = false;
+
+                if (id && /^\d+$/.test(id)) {
+                    const check = await client.query('SELECT id FROM channels WHERE id = $1', [id]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE channels SET channel_name = $1, description = $2, status = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
+                            [channel_name, description || null, status, id]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound && channel_code) {
+                    const check = await client.query('SELECT id FROM channels WHERE channel_code = $1', [channel_code]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE channels SET channel_name = $1, description = $2, status = $3, updated_at = CURRENT_TIMESTAMP WHERE channel_code = $4`,
+                            [channel_name, description || null, status, channel_code]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound) {
+                    const check = await client.query('SELECT id FROM channels WHERE channel_name = $1', [channel_name]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE channels SET description = $1, status = $2, updated_at = CURRENT_TIMESTAMP WHERE channel_name = $3`,
+                            [description || null, status, channel_name]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound) {
+                    await client.query(
+                        `INSERT INTO channels (channel_name, description, status) VALUES ($1, $2, $3)`,
+                        [channel_name, description || null, status]
+                    );
+                    insertedCount++;
+                }
+            } catch (err) {
+                errors.push({ row: rowNumber, error: err.message });
+            }
         }
+
+        await client.query('COMMIT');
+        res.json({ message: 'Success', summary: { totalRows: rawBody.length, inserted: insertedCount, updated: updatedCount, failed: errors.length }, errors: errors.length > 0 ? errors : null });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// ==========================================
+// 4. EMPLOYEES ENDPOINTS
+// ==========================================
+
+// GET /api/employees
+app.get('/api/employees', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM employees ORDER BY id DESC');
+        res.json(result.rows);
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// PUT /api/brands/:id - Update an existing brand manually
-app.put('/api/brands/:id', async (req, res) => {
-    const { id } = req.params;
-    const { brand_name, description, logo_url, status } = req.body;
+// POST /api/employees/bulk
+app.post('/api/employees/bulk', async (req, res) => {
+    const rawBody = parseRaw2DArray(req.body);
+    if (!Array.isArray(rawBody)) return res.status(400).json({ error: 'Expected an array' });
 
-    if (!brand_name) {
-        return res.status(400).json({ error: 'Brand name is required' });
-    }
-
+    const client = await pool.connect();
     try {
-        const result = await pool.query(
-            `UPDATE brands 
-             SET brand_name = $1, description = $2, logo_url = $3, status = $4, updated_at = CURRENT_TIMESTAMP
-             WHERE id = $5 RETURNING *`,
-            [brand_name, description || null, logo_url || null, status || 'Active', id]
-        );
+        let insertedCount = 0;
+        let updatedCount = 0;
+        let errors = [];
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Brand not found' });
+        await client.query('BEGIN');
+
+        for (let index = 0; index < rawBody.length; index++) {
+            const row = rawBody[index];
+            const rowNumber = index + 1;
+
+            const id = row.id || row.ID || row["ID (Only for updates)"];
+            const employee_name = row.employee_name || row["Employee Name"] || row.EmployeeName;
+            const employee_code = row.employee_code || row["Employee Code (Only for updates)"] || row.EmployeeCode;
+            const email = row.email || row.Email;
+            const mobile = row.mobile || row.Mobile;
+            const designation = row.designation || row.Designation;
+            const status = row.status || row.Status || 'Active';
+
+            if (!employee_name) {
+                errors.push({ row: rowNumber, error: 'Employee Name is missing' });
+                continue;
+            }
+
+            try {
+                let matchFound = false;
+
+                if (id && /^\d+$/.test(id)) {
+                    const check = await client.query('SELECT id FROM employees WHERE id = $1', [id]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE employees SET employee_name = $1, email = $2, mobile = $3, designation = $4, status = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`,
+                            [employee_name, email || null, mobile || null, designation || null, status, id]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound && employee_code) {
+                    const check = await client.query('SELECT id FROM employees WHERE employee_code = $1', [employee_code]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE employees SET employee_name = $1, email = $2, mobile = $3, designation = $4, status = $5, updated_at = CURRENT_TIMESTAMP WHERE employee_code = $6`,
+                            [employee_name, email || null, mobile || null, designation || null, status, employee_code]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound) {
+                    await client.query(
+                        `INSERT INTO employees (employee_name, email, mobile, designation, status) VALUES ($1, $2, $3, $4, $5)`,
+                        [employee_name, email || null, mobile || null, designation || null, status]
+                    );
+                    insertedCount++;
+                }
+            } catch (err) {
+                errors.push({ row: rowNumber, error: err.message });
+            }
         }
-        res.json(result.rows[0]);
+
+        await client.query('COMMIT');
+        res.json({ message: 'Success', summary: { totalRows: rawBody.length, inserted: insertedCount, updated: updatedCount, failed: errors.length }, errors: errors.length > 0 ? errors : null });
     } catch (err) {
-        if (err.code === '23505') {
-            return res.status(400).json({ error: 'Brand name already exists' });
-        }
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// ==========================================
+// 5. GST ENDPOINTS
+// ==========================================
+
+// GET /api/gst
+app.get('/api/gst', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM gst ORDER BY id DESC');
+        res.json(result.rows);
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// DELETE /api/brands/:id - Delete a brand manually
-app.delete('/api/brands/:id', async (req, res) => {
-    const { id } = req.params;
+// POST /api/gst/bulk
+app.post('/api/gst/bulk', async (req, res) => {
+    const rawBody = parseRaw2DArray(req.body);
+    if (!Array.isArray(rawBody)) return res.status(400).json({ error: 'Expected an array' });
+
+    const client = await pool.connect();
     try {
-        const result = await pool.query('DELETE FROM brands WHERE id = $1 RETURNING *', [id]);
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Brand not found' });
+        let insertedCount = 0;
+        let updatedCount = 0;
+        let errors = [];
+
+        await client.query('BEGIN');
+
+        for (let index = 0; index < rawBody.length; index++) {
+            const row = rawBody[index];
+            const rowNumber = index + 1;
+
+            const id = row.id || row.ID || row["ID (Only for updates)"];
+            const gst_name = row.gst_name || row["GST Name"] || row.GstName;
+            const gst_rate = row.gst_rate || row["GST Rate"] || row.GstRate;
+            const description = row.description || row.Description;
+            const status = row.status || row.Status || 'Active';
+
+            if (!gst_name || gst_rate === undefined || gst_rate === null) {
+                errors.push({ row: rowNumber, error: 'GST Name and GST Rate are required' });
+                continue;
+            }
+
+            try {
+                let matchFound = false;
+
+                if (id && /^\d+$/.test(id)) {
+                    const check = await client.query('SELECT id FROM gst WHERE id = $1', [id]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE gst SET gst_name = $1, gst_rate = $2, description = $3, status = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5`,
+                            [gst_name, parseFloat(gst_rate), description || null, status, id]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound) {
+                    const check = await client.query('SELECT id FROM gst WHERE gst_rate = $1 OR gst_name = $2', [parseFloat(gst_rate), gst_name]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE gst SET gst_name = $1, description = $2, status = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
+                            [gst_name, description || null, status, check.rows[0].id]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound) {
+                    await client.query(
+                        `INSERT INTO gst (gst_name, gst_rate, description, status) VALUES ($1, $2, $3, $4)`,
+                        [gst_name, parseFloat(gst_rate), description || null, status]
+                    );
+                    insertedCount++;
+                }
+            } catch (err) {
+                errors.push({ row: rowNumber, error: err.message });
+            }
         }
-        res.json({ message: 'Brand deleted successfully', brand: result.rows[0] });
+
+        await client.query('COMMIT');
+        res.json({ message: 'Success', summary: { totalRows: rawBody.length, inserted: insertedCount, updated: updatedCount, failed: errors.length }, errors: errors.length > 0 ? errors : null });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// ==========================================
+// 6. HSN CODE ENDPOINTS
+// ==========================================
+
+// GET /api/hsn
+app.get('/api/hsn', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT h.*, g.gst_name 
+            FROM hsn_codes h
+            LEFT JOIN gst g ON h.gst_id = g.id
+            ORDER BY h.id DESC
+        `);
+        res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/hsn/bulk
+app.post('/api/hsn/bulk', async (req, res) => {
+    const rawBody = parseRaw2DArray(req.body);
+    if (!Array.isArray(rawBody)) return res.status(400).json({ error: 'Expected an array' });
+
+    const client = await pool.connect();
+    try {
+        let insertedCount = 0;
+        let updatedCount = 0;
+        let errors = [];
+
+        await client.query('BEGIN');
+
+        for (let index = 0; index < rawBody.length; index++) {
+            const row = rawBody[index];
+            const rowNumber = index + 1;
+
+            const id = row.id || row.ID || row["ID (Only for updates)"];
+            const hsn_code = row.hsn_code || row["HSN Code"] || row.HsnCode;
+            const description = row.description || row.Description;
+            const gst_id = row.gst_id || row["GST ID"] || row.GstId;
+            const gst_rate = row.gst_rate || row["GST Rate"] || row.GstRate || 0.00;
+            const status = row.status || row.Status || 'Active';
+
+            if (!hsn_code) {
+                errors.push({ row: rowNumber, error: 'HSN Code is missing' });
+                continue;
+            }
+
+            try {
+                let matchFound = false;
+                let resolved_gst_id = gst_id ? parseInt(gst_id) : null;
+                let final_gst_rate = parseFloat(gst_rate);
+
+                // If gst_id is not provided but gst_rate is, try resolving from gst table
+                if (!resolved_gst_id && final_gst_rate > 0) {
+                    const checkGst = await client.query('SELECT id FROM gst WHERE gst_rate = $1 LIMIT 1', [final_gst_rate]);
+                    if (checkGst.rows.length > 0) {
+                        resolved_gst_id = checkGst.rows[0].id;
+                    }
+                }
+
+                if (id && /^\d+$/.test(id)) {
+                    const check = await client.query('SELECT id FROM hsn_codes WHERE id = $1', [id]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE hsn_codes SET hsn_code = $1, description = $2, gst_id = $3, gst_rate = $4, status = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`,
+                            [hsn_code, description || null, resolved_gst_id, final_gst_rate, status, id]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound) {
+                    const check = await client.query('SELECT id FROM hsn_codes WHERE hsn_code = $1', [hsn_code]);
+                    if (check.rows.length > 0) {
+                        await client.query(
+                            `UPDATE hsn_codes SET description = $1, gst_id = $2, gst_rate = $3, status = $4, updated_at = CURRENT_TIMESTAMP WHERE hsn_code = $5`,
+                            [description || null, resolved_gst_id, final_gst_rate, status, hsn_code]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+                if (!matchFound) {
+                    await client.query(
+                        `INSERT INTO hsn_codes (hsn_code, description, gst_id, gst_rate, status) VALUES ($1, $2, $3, $4, $5)`,
+                        [hsn_code, description || null, resolved_gst_id, final_gst_rate, status]
+                    );
+                    insertedCount++;
+                }
+            } catch (err) {
+                errors.push({ row: rowNumber, error: err.message });
+            }
+        }
+
+        await client.query('COMMIT');
+        res.json({ message: 'Success', summary: { totalRows: rawBody.length, inserted: insertedCount, updated: updatedCount, failed: errors.length }, errors: errors.length > 0 ? errors : null });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
     }
 });
 
