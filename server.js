@@ -203,7 +203,123 @@ app.post('/api/brands/upload', upload.single('file'), async (req, res) => {
     }
 });
 
-// 4. Brands CRUD Endpoints
+// 4. Brands Bulk JSON Upload Endpoint (for client-side parsed array upserts)
+// POST /api/brands/bulk - Processes JSON array of brands
+app.post('/api/brands/bulk', async (req, res) => {
+    const brands = req.body;
+    if (!Array.isArray(brands)) {
+        return res.status(400).json({ error: 'Expected a JSON array of brands' });
+    }
+
+    const client = await pool.connect();
+    try {
+        let insertedCount = 0;
+        let updatedCount = 0;
+        let errors = [];
+
+        await client.query('BEGIN');
+
+        for (let index = 0; index < brands.length; index++) {
+            const row = brands[index];
+            const rowNumber = index + 1;
+
+            // Extract values supporting various key cases
+            const id = row.id || row.ID || row["ID (Only for updates)"];
+            const brand_name = row.brand_name || row["Brand Name"] || row.BrandName;
+            const brand_code = row.brand_code || row["Brand Code (Only for updates)"] || row.BrandCode;
+            const description = row.description || row.Description;
+            const logo_url = row.logo_url || row["Logo URL"] || row.LogoUrl;
+            const status = row.status || row.Status || 'Active';
+
+            if (!brand_name) {
+                errors.push({ row: rowNumber, error: 'Brand Name is missing' });
+                continue;
+            }
+
+            try {
+                let matchFound = false;
+
+                // 1. Match by ID if provided
+                if (id && /^\d+$/.test(id)) {
+                    const checkId = await client.query('SELECT id FROM brands WHERE id = $1', [id]);
+                    if (checkId.rows.length > 0) {
+                        await client.query(
+                            `UPDATE brands 
+                             SET brand_name = $1, description = $2, logo_url = $3, status = $4, updated_at = CURRENT_TIMESTAMP
+                             WHERE id = $5`,
+                            [brand_name, description || null, logo_url || null, status, id]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+
+                // 2. Match by Brand Code if provided
+                if (!matchFound && brand_code) {
+                    const checkCode = await client.query('SELECT id FROM brands WHERE brand_code = $1', [brand_code]);
+                    if (checkCode.rows.length > 0) {
+                        await client.query(
+                            `UPDATE brands 
+                             SET brand_name = $1, description = $2, logo_url = $3, status = $4, updated_at = CURRENT_TIMESTAMP
+                             WHERE brand_code = $5`,
+                            [brand_name, description || null, logo_url || null, status, brand_code]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+
+                // 3. Match by Brand Name
+                if (!matchFound) {
+                    const checkName = await client.query('SELECT id FROM brands WHERE brand_name = $1', [brand_name]);
+                    if (checkName.rows.length > 0) {
+                        await client.query(
+                            `UPDATE brands 
+                             SET description = $1, logo_url = $2, status = $3, updated_at = CURRENT_TIMESTAMP
+                             WHERE brand_name = $4`,
+                            [description || null, logo_url || null, status, brand_name]
+                        );
+                        updatedCount++;
+                        matchFound = true;
+                    }
+                }
+
+                // 4. If no match, insert as new brand
+                if (!matchFound) {
+                    await client.query(
+                        `INSERT INTO brands (brand_name, description, logo_url, status) 
+                         VALUES ($1, $2, $3, $4)`,
+                        [brand_name, description || null, logo_url || null, status]
+                    );
+                    insertedCount++;
+                }
+            } catch (rowErr) {
+                errors.push({ row: rowNumber, brand: brand_name, error: rowErr.message });
+            }
+        }
+
+        await client.query('COMMIT');
+
+        res.json({
+            message: 'Bulk processing completed',
+            summary: {
+                totalRows: brands.length,
+                inserted: insertedCount,
+                updated: updatedCount,
+                failed: errors.length
+            },
+            errors: errors.length > 0 ? errors : null
+        });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: 'Transaction failed: ' + err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// 5. Brands CRUD Endpoints
 
 // GET /api/brands - Get all brands
 app.get('/api/brands', async (req, res) => {
