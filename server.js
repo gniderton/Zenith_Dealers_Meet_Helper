@@ -510,6 +510,40 @@ app.post('/api/:entity/bulk', async (req, res) => {
     } finally {
         client.release();
     }
+// ==========================================
+// DYNAMIC DELETE ENDPOINT FOR ALL ENTITIES
+// ==========================================
+app.delete('/api/:entity', async (req, res) => {
+    const entity = req.params.entity.toLowerCase().replace(/[\s_-]/g, '');
+    const ids = req.body;
+    
+    if (!Array.isArray(ids)) {
+        return res.status(400).json({ error: 'Expected a JSON array of IDs to delete' });
+    }
+
+    let tableName = '';
+    if (entity === 'brands' || entity === 'brand') {
+        tableName = 'brands';
+    } else if (entity === 'categories' || entity === 'category') {
+        tableName = 'categories';
+    } else if (entity === 'channel' || entity === 'channels') {
+        tableName = 'channels';
+    } else if (entity === 'employees' || entity === 'employee') {
+        tableName = 'employees';
+    } else if (entity === 'gst') {
+        tableName = 'gst';
+    } else if (entity === 'hsn' || entity === 'hsncode' || entity === 'hsncodes') {
+        tableName = 'hsn_codes';
+    } else {
+        return res.status(400).json({ error: `Unsupported entity: ${req.params.entity}` });
+    }
+
+    try {
+        const result = await pool.query(`DELETE FROM ${tableName} WHERE id = ANY($1::int[]) RETURNING *`, [ids]);
+        res.json({ message: `Successfully deleted ${result.rowCount} records`, deletedCount: result.rowCount, deleted: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Global Error Handler
