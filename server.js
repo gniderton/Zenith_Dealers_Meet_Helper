@@ -154,6 +154,37 @@ app.get('/api/:entity/template', (req, res) => {
                 "Is Active": "Yes"
             }];
             break;
+        case 'routes':
+        case 'route':
+            templateData = [{
+                "ID (Only for updates)": "",
+                "Route Name": "Route A",
+                "Description": "Optional description",
+                "Service Day": "Monday",
+                "Is Active": "Yes"
+            }];
+            break;
+        case 'customers':
+        case 'customer':
+            templateData = [{
+                "ID (Only for updates)": "",
+                "Customer Name": "A B Store",
+                "Customer Phone": "9876543210",
+                "Email": "store@example.com",
+                "GSTIN": "32ABCDE1234F1Z1",
+                "PAN": "ABCDE1234F",
+                "Route Name": "Route A",
+                "Employee Name": "John Doe",
+                "Channel Name": "General Trade",
+                "WhatsApp Number": "9876543210",
+                "Credit Limit": 50000.00,
+                "Credit Days": 30,
+                "Default Price Tier": "Dealer",
+                "Latitude": 11.256,
+                "Longitude": 75.782,
+                "Is Active": "Yes"
+            }];
+            break;
         default:
             return res.status(400).json({ error: `Template for entity '${req.params.entity}' is not supported.` });
     }
@@ -205,6 +236,17 @@ app.get('/api/:entity', async (req, res) => {
             LEFT JOIN hsn_codes h ON p.hsn_id = h.id
             LEFT JOIN gst g ON p.tax_id = g.id
             ORDER BY p.id DESC
+        `;
+    } else if (entity === 'routes' || entity === 'route') {
+        queryStr = 'SELECT * FROM routes ORDER BY route_name ASC';
+    } else if (entity === 'customers' || entity === 'customer') {
+        queryStr = `
+            SELECT c.*, r.route_name, e.full_name as employee_name, e.full_name as dse_name, ch.channel_name
+            FROM customers c
+            LEFT JOIN routes r ON c.route_id = r.id
+            LEFT JOIN employees e ON c.dse_id = e.id
+            LEFT JOIN channels ch ON c.channel_id = ch.id
+            ORDER BY c.customer_name ASC
         `;
     } else {
         return res.status(400).json({ error: `Unsupported entity: ${req.params.entity}` });
@@ -608,6 +650,145 @@ app.post('/api/:entity/bulk', async (req, res) => {
                         );
                         insertedCount++;
                     }
+                } else if (entity === 'routes' || entity === 'route') {
+                    const id = row.id || row.ID || row["ID (Only for updates)"];
+                    const route_name = row.route_name || row["Route Name"];
+                    const description = row.description || row.Description;
+                    const service_day = row.service_day || row["Service Day"];
+                    const rawActive = row.is_active || row["Is Active"];
+                    const is_active = rawActive !== undefined ? (rawActive === 'Yes' || rawActive === true || rawActive === 'true' || rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'active') : true;
+
+                    if (!route_name) throw new Error('Route Name is missing');
+
+                    try {
+                        await client.query("SELECT setval('routes_id_seq', COALESCE(max(id), 1)) FROM routes");
+                    } catch(e) {}
+
+                    let matchFound = false;
+                    if (id && /^\d+$/.test(id)) {
+                        const check = await client.query('SELECT id FROM routes WHERE id = $1', [id]);
+                        if (check.rows.length > 0) {
+                            await client.query(
+                                `UPDATE routes SET route_name = $1, description = $2, service_day = $3, is_active = $4 WHERE id = $5`,
+                                [route_name, description || null, service_day || null, is_active, id]
+                            );
+                            updatedCount++;
+                            matchFound = true;
+                        }
+                    }
+                    if (!matchFound) {
+                        const check = await client.query('SELECT id FROM routes WHERE route_name = $1', [route_name]);
+                        if (check.rows.length > 0) {
+                            await client.query(
+                                `UPDATE routes SET description = $1, service_day = $2, is_active = $3 WHERE route_name = $4`,
+                                [description || null, service_day || null, is_active, route_name]
+                            );
+                            updatedCount++;
+                            matchFound = true;
+                        }
+                    }
+                    if (!matchFound) {
+                        await client.query(
+                            `INSERT INTO routes (route_name, description, service_day, is_active) VALUES ($1, $2, $3, $4)`,
+                            [route_name, description || null, service_day || null, is_active]
+                        );
+                        insertedCount++;
+                    }
+                } else if (entity === 'customers' || entity === 'customer') {
+                    const id = row.id || row.ID || row["ID (Only for updates)"];
+                    const customer_name = row.customer_name || row["Customer Name"];
+                    const customer_phone = row.customer_phone || row["Customer Phone"];
+                    const email = row.email || row.Email;
+                    const gstin = row.gstin || row.GSTIN;
+                    const pan = row.pan || row.PAN;
+                    const route_name = row.route_name || row["Route Name"];
+                    const employee_name = row.employee_name || row["Employee Name"] || row.dse_name;
+                    const channel_name = row.channel_name || row["Channel Name"];
+                    const whatsapp_number = row.whatsapp_number || row["WhatsApp Number"];
+                    const credit_limit = parseFloat(row.credit_limit || row["Credit Limit"] || 0);
+                    const credit_days = parseInt(row.credit_days || row["Credit Days"] || 0);
+                    const default_price_tier = row.default_price_tier || row["Default Price Tier"] || 'Dealer';
+                    const latitude = parseFloat(row.latitude || row["Latitude"] || null);
+                    const longitude = parseFloat(row.longitude || row["Longitude"] || null);
+                    
+                    const rawActive = row.is_active || row["Is Active"];
+                    const is_active = rawActive !== undefined ? (rawActive === 'Yes' || rawActive === true || rawActive === 'true' || rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'active') : true;
+
+                    if (!customer_name) throw new Error('Customer Name is missing');
+
+                    // Resolve IDs
+                    let route_id = null;
+                    if (route_name) {
+                        const check = await client.query('SELECT id FROM routes WHERE route_name = $1 LIMIT 1', [route_name]);
+                        if (check.rows.length > 0) route_id = check.rows[0].id;
+                    }
+                    let dse_id = null;
+                    if (employee_name) {
+                        const check = await client.query('SELECT id FROM employees WHERE employee_name = $1 OR full_name = $1 LIMIT 1', [employee_name]);
+                        if (check.rows.length > 0) dse_id = check.rows[0].id;
+                    }
+                    let channel_id = null;
+                    if (channel_name) {
+                        const check = await client.query('SELECT id FROM channels WHERE channel_name = $1 LIMIT 1', [channel_name]);
+                        if (check.rows.length > 0) channel_id = check.rows[0].id;
+                    }
+
+                    let matchFound = false;
+                    if (id && /^\d+$/.test(id)) {
+                        const check = await client.query('SELECT id FROM customers WHERE id = $1', [id]);
+                        if (check.rows.length > 0) {
+                            await client.query(
+                                `UPDATE customers SET 
+                                    customer_name = $1, customer_phone = $2, email = $3, gstin = $4, pan = $5,
+                                    route_id = $6, dse_id = $7, channel_id = $8, whatsapp_number = $9,
+                                    credit_limit = $10, credit_days = $11, default_price_tier = $12,
+                                    latitude = $13, longitude = $14, is_active = $15, updated_at = CURRENT_TIMESTAMP
+                                 WHERE id = $16`,
+                                [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, credit_limit, credit_days, default_price_tier, latitude || null, longitude || null, is_active, id]
+                            );
+                            updatedCount++;
+                            matchFound = true;
+                        }
+                    }
+                    if (!matchFound) {
+                        const check = await client.query('SELECT id FROM customers WHERE customer_name = $1', [customer_name]);
+                        if (check.rows.length > 0) {
+                            await client.query(
+                                `UPDATE customers SET 
+                                    customer_phone = $1, email = $2, gstin = $3, pan = $4,
+                                    route_id = $5, dse_id = $6, channel_id = $7, whatsapp_number = $8,
+                                    credit_limit = $9, credit_days = $10, default_price_tier = $11,
+                                    latitude = $12, longitude = $13, is_active = $14, updated_at = CURRENT_TIMESTAMP
+                                 WHERE customer_name = $15`,
+                                [customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, credit_limit, credit_days, default_price_tier, latitude || null, longitude || null, is_active, customer_name]
+                            );
+                            updatedCount++;
+                            matchFound = true;
+                        }
+                    }
+                    if (!matchFound) {
+                        // Generate customer code
+                        const seqRes = await client.query(`
+                            UPDATE document_sequences SET current_number = current_number + 1 WHERE document_type = 'CUSTOMER' RETURNING prefix, current_number
+                        `);
+                        let custCode = '';
+                        if (seqRes.rows.length > 0) {
+                            custCode = `${seqRes.rows[0].prefix || ''}${String(seqRes.rows[0].current_number).padStart(4, '0')}`;
+                        } else {
+                            custCode = `CUST-${Date.now().toString().substring(8)}`;
+                        }
+
+                        await client.query(
+                            `INSERT INTO customers (
+                                customer_name, customer_phone, email, gstin, pan,
+                                route_id, dse_id, channel_id, whatsapp_number,
+                                credit_limit, credit_days, default_price_tier,
+                                latitude, longitude, is_active, customer_code
+                             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+                            [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, credit_limit, credit_days, default_price_tier, latitude || null, longitude || null, is_active, custCode]
+                        );
+                        insertedCount++;
+                    }
                 } else {
                     throw new Error(`Unsupported entity: ${req.params.entity}`);
                 }
@@ -652,6 +833,10 @@ app.delete('/api/:entity', async (req, res) => {
         tableName = 'hsn_codes';
     } else if (entity === 'products' || entity === 'product') {
         tableName = 'products';
+    } else if (entity === 'routes' || entity === 'route') {
+        tableName = 'routes';
+    } else if (entity === 'customers' || entity === 'customer') {
+        tableName = 'customers';
     } else {
         return res.status(400).json({ error: `Unsupported entity: ${req.params.entity}` });
     }
