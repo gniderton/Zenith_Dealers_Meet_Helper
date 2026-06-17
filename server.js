@@ -206,8 +206,27 @@ app.post('/api/brands/upload', upload.single('file'), async (req, res) => {
 // 4. Brands Bulk JSON Upload Endpoint (for client-side parsed array upserts)
 // POST /api/brands/bulk - Processes JSON array of brands
 app.post('/api/brands/bulk', async (req, res) => {
-    const brands = req.body;
+    let brands = req.body;
     console.log("Received bulk brands payload:", JSON.stringify(brands, null, 2));
+    
+    // Auto-detect and parse raw Appsmith 2D array format:
+    // [{ name: "Sheet1", data: [[headers], [row1], [row2]] }]
+    if (Array.isArray(brands) && brands.length === 1 && brands[0].data && Array.isArray(brands[0].data)) {
+        console.log("Detected raw 2D array payload, parsing on backend...");
+        const sheetData = brands[0].data;
+        if (sheetData.length >= 2) {
+            const headers = sheetData[0];
+            const rows = sheetData.slice(1);
+            brands = rows.map(row => {
+                let obj = {};
+                headers.forEach((header, index) => {
+                    obj[header] = row[index];
+                });
+                return obj;
+            });
+        }
+    }
+
     if (!Array.isArray(brands)) {
         return res.status(400).json({ error: 'Expected a JSON array of brands' });
     }
