@@ -133,6 +133,27 @@ app.get('/api/:entity/template', (req, res) => {
                 "Status": "Active"
             }];
             break;
+        case 'products':
+        case 'product':
+            templateData = [{
+                "ID (Only for updates)": "",
+                "Brand Name": "Example Brand",
+                "Category Name": "Example Category",
+                "Product Name": "DM_FRUIT DRINKS_GREEN APPLE_240_ML",
+                "EAN Code": "8901246005977",
+                "HSN Code": "84713010",
+                "MRP": 50.00,
+                "GST Rate": 18.00,
+                "Purchase Rate": 24.55861,
+                "Distributor Rate": 38.10000,
+                "Wholesale Rate": 38.10000,
+                "Dealer Rate": 38.10000,
+                "Retail Rate": 47.62000,
+                "Case Quantity": 24,
+                "UOM": "Pcs",
+                "Is Active": "Yes"
+            }];
+            break;
         default:
             return res.status(400).json({ error: `Template for entity '${req.params.entity}' is not supported.` });
     }
@@ -174,6 +195,16 @@ app.get('/api/:entity', async (req, res) => {
             FROM hsn_codes h
             LEFT JOIN gst g ON h.gst_id = g.id
             ORDER BY h.id DESC
+        `;
+    } else if (entity === 'products' || entity === 'product') {
+        queryStr = `
+            SELECT p.*, b.brand_name, c.category_name, h.hsn_code, g.gst_name as tax_name 
+            FROM products p
+            LEFT JOIN brands b ON p.brand_id = b.id
+            LEFT JOIN categories c ON p.category_id = c.id
+            LEFT JOIN hsn_codes h ON p.hsn_id = h.id
+            LEFT JOIN gst g ON p.tax_id = g.id
+            ORDER BY p.id DESC
         `;
     } else {
         return res.status(400).json({ error: `Unsupported entity: ${req.params.entity}` });
@@ -463,37 +494,120 @@ app.post('/api/:entity/bulk', async (req, res) => {
                     if (!resolved_gst_id && final_gst_rate > 0) {
                         const checkGst = await client.query('SELECT id FROM gst WHERE gst_rate = $1 LIMIT 1', [final_gst_rate]);
                         if (checkGst.rows.length > 0) resolved_gst_id = checkGst.rows[0].id;
-                      }
+                    }
 
-                      if (id && /^\d+$/.test(id)) {
-                          const check = await client.query('SELECT id FROM hsn_codes WHERE id = $1', [id]);
-                          if (check.rows.length > 0) {
-                              await client.query(
-                                  `UPDATE hsn_codes SET hsn_code = $1, description = $2, gst_id = $3, gst_rate = $4, status = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`,
-                                  [hsn_code, description || null, resolved_gst_id, final_gst_rate, status, id]
-                              );
-                              updatedCount++;
-                              matchFound = true;
-                          }
-                      }
-                      if (!matchFound) {
-                          const check = await client.query('SELECT id FROM hsn_codes WHERE hsn_code = $1', [hsn_code]);
-                          if (check.rows.length > 0) {
-                              await client.query(
-                                  `UPDATE hsn_codes SET description = $1, gst_id = $2, gst_rate = $3, status = $4, updated_at = CURRENT_TIMESTAMP WHERE hsn_code = $5`,
-                                  [description || null, resolved_gst_id, final_gst_rate, status, hsn_code]
-                              );
-                              updatedCount++;
-                              matchFound = true;
-                          }
-                      }
-                      if (!matchFound) {
-                          await client.query(
-                              `INSERT INTO hsn_codes (hsn_code, description, gst_id, gst_rate, status) VALUES ($1, $2, $3, $4, $5)`,
-                              [hsn_code, description || null, resolved_gst_id, final_gst_rate, status]
-                          );
-                          insertedCount++;
-                      }
+                    if (id && /^\d+$/.test(id)) {
+                        const check = await client.query('SELECT id FROM hsn_codes WHERE id = $1', [id]);
+                        if (check.rows.length > 0) {
+                            await client.query(
+                                `UPDATE hsn_codes SET hsn_code = $1, description = $2, gst_id = $3, gst_rate = $4, status = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`,
+                                [hsn_code, description || null, resolved_gst_id, final_gst_rate, status, id]
+                            );
+                            updatedCount++;
+                            matchFound = true;
+                        }
+                    }
+                    if (!matchFound) {
+                        const check = await client.query('SELECT id FROM hsn_codes WHERE hsn_code = $1', [hsn_code]);
+                        if (check.rows.length > 0) {
+                            await client.query(
+                                `UPDATE hsn_codes SET description = $1, gst_id = $2, gst_rate = $3, status = $4, updated_at = CURRENT_TIMESTAMP WHERE hsn_code = $5`,
+                                [description || null, resolved_gst_id, final_gst_rate, status, hsn_code]
+                            );
+                            updatedCount++;
+                            matchFound = true;
+                        }
+                    }
+                    if (!matchFound) {
+                        await client.query(
+                            `INSERT INTO hsn_codes (hsn_code, description, gst_id, gst_rate, status) VALUES ($1, $2, $3, $4, $5)`,
+                            [hsn_code, description || null, resolved_gst_id, final_gst_rate, status]
+                        );
+                        insertedCount++;
+                    }
+                } else if (entity === 'products' || entity === 'product') {
+                    const id = row.id || row.ID || row["ID (Only for updates)"];
+                    const brand_name = row.brand_name || row["Brand Name"] || row.BrandName;
+                    const category_name = row.category_name || row["Category Name"] || row.CategoryName;
+                    const product_name = row.product_name || row["Product Name"] || row.ProductName;
+                    const ean_code = row.ean_code || row["EAN Code"] || row.EanCode;
+                    const hsn_code = row.hsn_code || row["HSN Code"] || row.HsnCode;
+                    const mrp = row.mrp || row.MRP;
+                    const gst_rate = row.gst_rate || row["GST Rate"] || row.GstRate;
+                    const purchase_rate = row.purchase_rate || row["Purchase Rate"] || row.PurchaseRate;
+                    const distributor_rate = row.distributor_rate || row["Distributor Rate"] || row.DistributorRate;
+                    const wholesale_rate = row.wholesale_rate || row["Wholesale Rate"] || row.WholesaleRate;
+                    const dealer_rate = row.dealer_rate || row["Dealer Rate"] || row.DealerRate;
+                    const retail_rate = row.retail_rate || row["Retail Rate"] || row.RetailRate;
+                    const case_quantity = row.case_quantity || row["Case Quantity"] || row.CaseQuantity || 1;
+                    const uom = row.uom || row.UOM || 'Pcs';
+                    
+                    const rawActive = row.is_active || row["Is Active"] || row.IsActive;
+                    const is_active = rawActive !== undefined ? (rawActive === 'Yes' || rawActive === true || rawActive === 'true' || rawActive === 1 || rawActive === '1') : true;
+
+                    if (!product_name) throw new Error('Product Name is missing');
+
+                    // Resolve Foreign Key IDs dynamically
+                    let brand_id = null;
+                    if (brand_name) {
+                        const check = await client.query('SELECT id FROM brands WHERE brand_name = $1 LIMIT 1', [brand_name]);
+                        if (check.rows.length > 0) brand_id = check.rows[0].id;
+                    }
+
+                    let category_id = null;
+                    if (category_name) {
+                        const check = await client.query('SELECT id FROM categories WHERE category_name = $1 LIMIT 1', [category_name]);
+                        if (check.rows.length > 0) category_id = check.rows[0].id;
+                    }
+
+                    let hsn_id = null;
+                    if (hsn_code) {
+                        const check = await client.query('SELECT id FROM hsn_codes WHERE hsn_code = $1 LIMIT 1', [hsn_code]);
+                        if (check.rows.length > 0) hsn_id = check.rows[0].id;
+                    }
+
+                    let tax_id = null;
+                    if (gst_rate !== undefined) {
+                        const check = await client.query('SELECT id FROM gst WHERE gst_rate = $1 LIMIT 1', [parseFloat(gst_rate)]);
+                        if (check.rows.length > 0) tax_id = check.rows[0].id;
+                    }
+
+                    let matchFound = false;
+
+                    if (id && /^\d+$/.test(id)) {
+                        const check = await client.query('SELECT id FROM products WHERE id = $1', [id]);
+                        if (check.rows.length > 0) {
+                            await client.query(
+                                `UPDATE products 
+                                 SET brand_id = $1, category_id = $2, hsn_id = $3, tax_id = $4, product_name = $5, ean_code = $6, mrp = $7, purchase_rate = $8, distributor_rate = $9, wholesale_rate = $10, dealer_rate = $11, retail_rate = $12, case_quantity = $13, uom = $14, is_active = $15, updated_at = CURRENT_TIMESTAMP 
+                                 WHERE id = $16`,
+                                [brand_id, category_id, hsn_id, tax_id, product_name, ean_code || null, parseFloat(mrp || 0), parseFloat(purchase_rate || 0), parseFloat(distributor_rate || 0), parseFloat(wholesale_rate || 0), parseFloat(dealer_rate || 0), parseFloat(retail_rate || 0), parseInt(case_quantity), uom, is_active, id]
+                            );
+                            updatedCount++;
+                            matchFound = true;
+                        }
+                    }
+                    if (!matchFound) {
+                        const check = await client.query('SELECT id FROM products WHERE product_name = $1', [product_name]);
+                        if (check.rows.length > 0) {
+                            await client.query(
+                                `UPDATE products 
+                                 SET brand_id = $1, category_id = $2, hsn_id = $3, tax_id = $4, ean_code = $5, mrp = $6, purchase_rate = $7, distributor_rate = $8, wholesale_rate = $9, dealer_rate = $10, retail_rate = $11, case_quantity = $12, uom = $13, is_active = $14, updated_at = CURRENT_TIMESTAMP 
+                                 WHERE product_name = $15`,
+                                [brand_id, category_id, hsn_id, tax_id, ean_code || null, parseFloat(mrp || 0), parseFloat(purchase_rate || 0), parseFloat(distributor_rate || 0), parseFloat(wholesale_rate || 0), parseFloat(dealer_rate || 0), parseFloat(retail_rate || 0), parseInt(case_quantity), uom, is_active, product_name]
+                            );
+                            updatedCount++;
+                            matchFound = true;
+                        }
+                    }
+                    if (!matchFound) {
+                        await client.query(
+                            `INSERT INTO products (brand_id, category_id, hsn_id, tax_id, product_name, ean_code, mrp, purchase_rate, distributor_rate, wholesale_rate, dealer_rate, retail_rate, case_quantity, uom, is_active) 
+                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+                             [brand_id, category_id, hsn_id, tax_id, product_name, ean_code || null, parseFloat(mrp || 0), parseFloat(purchase_rate || 0), parseFloat(distributor_rate || 0), parseFloat(wholesale_rate || 0), parseFloat(dealer_rate || 0), parseFloat(retail_rate || 0), parseInt(case_quantity), uom, is_active]
+                        );
+                        insertedCount++;
+                    }
                 } else {
                     throw new Error(`Unsupported entity: ${req.params.entity}`);
                 }
@@ -536,6 +650,8 @@ app.delete('/api/:entity', async (req, res) => {
         tableName = 'gst';
     } else if (entity === 'hsn' || entity === 'hsncode' || entity === 'hsncodes') {
         tableName = 'hsn_codes';
+    } else if (entity === 'products' || entity === 'product') {
+        tableName = 'products';
     } else {
         return res.status(400).json({ error: `Unsupported entity: ${req.params.entity}` });
     }

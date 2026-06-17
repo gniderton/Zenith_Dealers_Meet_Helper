@@ -5,6 +5,7 @@ CREATE SEQUENCE IF NOT EXISTS brand_code_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS category_code_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS channel_code_seq START 1;
 CREATE SEQUENCE IF NOT EXISTS employee_code_seq START 1;
+CREATE SEQUENCE IF NOT EXISTS product_code_seq START 1;
 
 -- 2. Brands table
 CREATE TABLE IF NOT EXISTS brands (
@@ -75,3 +76,63 @@ CREATE TABLE IF NOT EXISTS hsn_codes (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 8. Products table
+CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    brand_id INT REFERENCES brands(id) ON DELETE SET NULL,
+    category_id INT REFERENCES categories(id) ON DELETE SET NULL,
+    hsn_id INT REFERENCES hsn_codes(id) ON DELETE SET NULL,
+    tax_id INT REFERENCES gst(id) ON DELETE SET NULL,
+    product_code VARCHAR(50) UNIQUE,
+    product_name VARCHAR(200) NOT NULL UNIQUE,
+    ean_code VARCHAR(50),
+    mrp NUMERIC(15,2) DEFAULT 0.00,
+    purchase_rate NUMERIC(15,5) DEFAULT 0.00,
+    distributor_rate NUMERIC(15,5) DEFAULT 0.00,
+    wholesale_rate NUMERIC(15,5) DEFAULT 0.00,
+    dealer_rate NUMERIC(15,5) DEFAULT 0.00,
+    retail_rate NUMERIC(15,5) DEFAULT 0.00,
+    case_quantity INT DEFAULT 1,
+    uom VARCHAR(20) DEFAULT 'Pcs',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9. Trigger to auto-generate 9-digit product_code
+CREATE OR REPLACE FUNCTION generate_product_code()
+RETURNS TRIGGER AS $$
+DECLARE
+    b_code VARCHAR(3);
+    c_code VARCHAR(3);
+    p_seq INT;
+    p_code VARCHAR(3);
+BEGIN
+    -- Fetch brand_code
+    SELECT brand_code INTO b_code FROM brands WHERE id = NEW.brand_id;
+    IF b_code IS NULL THEN
+        b_code := '000';
+    END IF;
+
+    -- Fetch category_code
+    SELECT category_code INTO c_code FROM categories WHERE id = NEW.category_id;
+    IF c_code IS NULL THEN
+        c_code := '000';
+    END IF;
+
+    -- Get next sequence value
+    p_seq := nextval('product_code_seq');
+    p_code := LPAD(p_seq::text, 3, '0');
+
+    -- Set combined code
+    NEW.product_code := b_code || c_code || p_code;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_generate_product_code
+BEFORE INSERT ON products
+FOR EACH ROW
+EXECUTE FUNCTION generate_product_code();
