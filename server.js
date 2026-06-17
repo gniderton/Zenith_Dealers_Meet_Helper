@@ -241,7 +241,7 @@ app.get('/api/:entity', async (req, res) => {
         queryStr = 'SELECT * FROM routes ORDER BY route_name ASC';
     } else if (entity === 'customers' || entity === 'customer') {
         queryStr = `
-            SELECT c.*, r.route_name, e.full_name as employee_name, e.full_name as dse_name, ch.channel_name
+            SELECT c.*, r.route_name, e.employee_name as employee_name, e.employee_name as dse_name, ch.channel_name
             FROM customers c
             LEFT JOIN routes r ON c.route_id = r.id
             LEFT JOIN employees e ON c.employee_id = e.id
@@ -724,7 +724,7 @@ app.post('/api/:entity/bulk', async (req, res) => {
                     }
                     let dse_id = null;
                     if (employee_name) {
-                        const check = await client.query('SELECT id FROM employees WHERE employee_name = $1 OR full_name = $1 LIMIT 1', [employee_name]);
+                        const check = await client.query('SELECT id FROM employees WHERE employee_name = $1 LIMIT 1', [employee_name]);
                         if (check.rows.length > 0) dse_id = check.rows[0].id;
                     }
                     let channel_id = null;
