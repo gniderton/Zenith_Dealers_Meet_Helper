@@ -1,5 +1,5 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+require('dotenv').config({ path: '../.env' });
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -8,7 +8,6 @@ const pool = new Pool({
 
 async function run() {
     try {
-        console.log("Connecting to Supabase PostgreSQL Database...");
         const res = await pool.query(`
             SELECT column_name, data_type 
             FROM information_schema.columns 

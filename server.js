@@ -244,7 +244,7 @@ app.get('/api/:entity', async (req, res) => {
             SELECT c.*, r.route_name, e.full_name as employee_name, e.full_name as dse_name, ch.channel_name
             FROM customers c
             LEFT JOIN routes r ON c.route_id = r.id
-            LEFT JOIN employees e ON c.dse_id = e.id
+            LEFT JOIN employees e ON c.employee_id = e.id
             LEFT JOIN channels ch ON c.channel_id = ch.id
             ORDER BY c.customer_name ASC
         `;
@@ -740,7 +740,7 @@ app.post('/api/:entity/bulk', async (req, res) => {
                             await client.query(
                                 `UPDATE customers SET 
                                     customer_name = $1, customer_phone = $2, email = $3, gstin = $4, pan = $5,
-                                    route_id = $6, dse_id = $7, channel_id = $8, whatsapp_number = $9,
+                                    route_id = $6, employee_id = $7, channel_id = $8, whatsapp_number = $9,
                                     credit_limit = $10, credit_days = $11, default_price_tier = $12,
                                     latitude = $13, longitude = $14, is_active = $15, updated_at = CURRENT_TIMESTAMP
                                  WHERE id = $16`,
@@ -756,7 +756,7 @@ app.post('/api/:entity/bulk', async (req, res) => {
                             await client.query(
                                 `UPDATE customers SET 
                                     customer_phone = $1, email = $2, gstin = $3, pan = $4,
-                                    route_id = $5, dse_id = $6, channel_id = $7, whatsapp_number = $8,
+                                    route_id = $5, employee_id = $6, channel_id = $7, whatsapp_number = $8,
                                     credit_limit = $9, credit_days = $10, default_price_tier = $11,
                                     latitude = $12, longitude = $13, is_active = $14, updated_at = CURRENT_TIMESTAMP
                                  WHERE customer_name = $15`,
@@ -781,7 +781,7 @@ app.post('/api/:entity/bulk', async (req, res) => {
                         await client.query(
                             `INSERT INTO customers (
                                 customer_name, customer_phone, email, gstin, pan,
-                                route_id, dse_id, channel_id, whatsapp_number,
+                                route_id, employee_id, channel_id, whatsapp_number,
                                 credit_limit, credit_days, default_price_tier,
                                 latitude, longitude, is_active, customer_code
                              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
