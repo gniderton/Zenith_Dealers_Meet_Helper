@@ -704,11 +704,17 @@ app.post('/api/:entity/bulk', async (req, res) => {
                     const employee_name = row.employee_name || row["Employee Name"] || row.dse_name;
                     const channel_name = row.channel_name || row["Channel Name"];
                     const whatsapp_number = row.whatsapp_number || row["WhatsApp Number"];
-                    const credit_limit = parseFloat(row.credit_limit || row["Credit Limit"] || 0);
-                    const credit_days = parseInt(row.credit_days || row["Credit Days"] || 0);
+                    const parseNum = (val, defaultVal) => {
+                        if (val === null || val === undefined || val === '') return defaultVal;
+                        const parsed = parseFloat(val);
+                        return isNaN(parsed) ? defaultVal : parsed;
+                    };
+
+                    const credit_limit = parseNum(row.credit_limit || row["Credit Limit"], 0);
+                    const credit_days = parseInt(parseNum(row.credit_days || row["Credit Days"], 0));
                     const default_price_tier = row.default_price_tier || row["Default Price Tier"] || 'Dealer';
-                    const latitude = parseFloat(row.latitude || row["Latitude"] || null);
-                    const longitude = parseFloat(row.longitude || row["Longitude"] || null);
+                    const latitude = parseNum(row.latitude || row["Latitude"], null);
+                    const longitude = parseNum(row.longitude || row["Longitude"], null);
                     
                     const rawActive = row.is_active || row["Is Active"];
                     const is_active = rawActive !== undefined ? (rawActive === 'Yes' || rawActive === true || rawActive === 'true' || rawActive === 1 || rawActive === '1' || String(rawActive).toLowerCase() === 'active') : true;
@@ -766,25 +772,14 @@ app.post('/api/:entity/bulk', async (req, res) => {
                         }
                     }
                     if (!matchFound) {
-                        // Generate customer code
-                        const seqRes = await client.query(`
-                            UPDATE document_sequences SET current_number = current_number + 1 WHERE document_type = 'CUSTOMER' RETURNING prefix, current_number
-                        `);
-                        let custCode = '';
-                        if (seqRes.rows.length > 0) {
-                            custCode = `${seqRes.rows[0].prefix || ''}${String(seqRes.rows[0].current_number).padStart(4, '0')}`;
-                        } else {
-                            custCode = `CUST-${Date.now().toString().substring(8)}`;
-                        }
-
                         await client.query(
                             `INSERT INTO customers (
                                 customer_name, customer_phone, email, gstin, pan,
                                 route_id, employee_id, channel_id, whatsapp_number,
                                 credit_limit, credit_days, default_price_tier,
-                                latitude, longitude, is_active, customer_code
-                             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
-                            [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, credit_limit, credit_days, default_price_tier, latitude || null, longitude || null, is_active, custCode]
+                                latitude, longitude, is_active
+                             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+                            [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, credit_limit, credit_days, default_price_tier, latitude || null, longitude || null, is_active]
                         );
                         insertedCount++;
                     }
