@@ -1,6 +1,3 @@
-const dns = require('dns');
-dns.setDefaultResultOrder('ipv4first');
-
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -8,14 +5,14 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000; // Render sets PORT automatically
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-// PostgreSQL Connection Pool config (Postgres Pooler direct connecting to Supabase)
+// PostgreSQL Connection Pool config
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
@@ -37,136 +34,101 @@ app.get('/health', (req, res) => {
     res.json({ status: 'UP', timestamp: new Date() });
 });
 
-// 2. Dealers CRUD
-app.get('/api/dealers', async (req, res) => {
+// 2. Brands CRUD Endpoints
+
+// GET /api/brands - Get all brands
+app.get('/api/brands', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM dealers ORDER BY id DESC');
+        const result = await pool.query('SELECT * FROM brands ORDER BY id DESC');
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.post('/api/dealers', async (req, res) => {
-    const { dealer_name, shop_name, region, mobile, email, rsvp_status } = req.body;
-    try {
-        const result = await pool.query(
-            `INSERT INTO dealers (dealer_name, shop_name, region, mobile, email, rsvp_status) 
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [dealer_name, shop_name, region, mobile, email, rsvp_status || 'Pending']
-        );
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.put('/api/dealers/:id', async (req, res) => {
+// GET /api/brands/:id - Get a single brand by ID or brand_code
+app.get('/api/brands/:id', async (req, res) => {
     const { id } = req.params;
-    const { dealer_name, shop_name, region, mobile, email, rsvp_status, attendance_status } = req.body;
     try {
-        const result = await pool.query(
-            `UPDATE dealers 
-             SET dealer_name = $1, shop_name = $2, region = $3, mobile = $4, email = $5, rsvp_status = $6, attendance_status = $7
-             WHERE id = $8 RETURNING *`,
-            [dealer_name, shop_name, region, mobile, email, rsvp_status, attendance_status, id]
-        );
-        if (result.rows.length === 0) return res.status(404).json({ error: 'Dealer not found' });
+        let result;
+        // If query param is a number, search by ID, else search by brand_code
+        if (/^\d+$/.test(id)) {
+            result = await pool.query('SELECT * FROM brands WHERE id = $1', [id]);
+        } else {
+            result = await pool.query('SELECT * FROM brands WHERE brand_code = $1', [id]);
+        }
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Brand not found' });
+        }
         res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-app.delete('/api/dealers/:id', async (req, res) => {
+// POST /api/brands - Create a new brand
+app.post('/api/brands', async (req, res) => {
+    const { brand_name, description, logo_url, status } = req.body;
+    
+    if (!brand_name) {
+        return res.status(400).json({ error: 'Brand name is required' });
+    }
+
+    try {
+        // Insert into table, the brand_code will auto-generate via sequence
+        const result = await pool.query(
+            `INSERT INTO brands (brand_name, description, logo_url, status) 
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [brand_name, description || null, logo_url || null, status || 'Active']
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') { // Unique constraint violation (brand_name or brand_code)
+            return res.status(400).json({ error: 'Brand name already exists' });
+        }
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /api/brands/:id - Update an existing brand
+app.put('/api/brands/:id', async (req, res) => {
+    const { id } = req.params;
+    const { brand_name, description, logo_url, status } = req.body;
+
+    if (!brand_name) {
+        return res.status(400).json({ error: 'Brand name is required' });
+    }
+
+    try {
+        const result = await pool.query(
+            `UPDATE brands 
+             SET brand_name = $1, description = $2, logo_url = $3, status = $4, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $5 RETURNING *`,
+            [brand_name, description || null, logo_url || null, status || 'Active', id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Brand not found' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') {
+            return res.status(400).json({ error: 'Brand name already exists' });
+        }
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE /api/brands/:id - Delete a brand
+app.delete('/api/brands/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const result = await pool.query('DELETE FROM dealers WHERE id = $1 RETURNING *', [id]);
-        if (result.rows.length === 0) return res.status(404).json({ error: 'Dealer not found' });
-        res.json({ message: 'Dealer deleted successfully', dealer: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// 3. Check-ins Endpoints
-app.post('/api/checkins', async (req, res) => {
-    const { dealer_id, hotel_room_no, transport_mode, transport_details, remarks } = req.body;
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        
-        // Create checkin record
-        const checkinRes = await client.query(
-            `INSERT INTO checkins (dealer_id, hotel_room_no, transport_mode, transport_details, remarks)
-             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [dealer_id, hotel_room_no, transport_mode, transport_details, remarks]
-        );
-
-        // Update dealer attendance status
-        await client.query(
-            `UPDATE dealers SET attendance_status = 'Checked-In' WHERE id = $1`,
-            [dealer_id]
-        );
-
-        await client.query('COMMIT');
-        res.status(201).json(checkinRes.rows[0]);
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// 4. Agenda Endpoints
-app.get('/api/agenda', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM agenda ORDER BY start_time ASC');
-        res.json(result.rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.post('/api/agenda', async (req, res) => {
-    const { title, description, speaker, start_time, end_time, venue } = req.body;
-    try {
-        const result = await pool.query(
-            `INSERT INTO agenda (title, description, speaker, start_time, end_time, venue)
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [title, description, speaker, start_time, end_time, venue]
-        );
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// 5. Feedback Endpoints
-app.post('/api/feedback', async (req, res) => {
-    const { dealer_id, session_rating, food_rating, overall_rating, comments } = req.body;
-    try {
-        const result = await pool.query(
-            `INSERT INTO feedback (dealer_id, session_rating, food_rating, overall_rating, comments)
-             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [dealer_id, session_rating, food_rating, overall_rating, comments]
-        );
-        res.status(201).json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/api/feedback', async (req, res) => {
-    try {
-        const result = await pool.query(
-            `SELECT f.*, d.dealer_name, d.shop_name 
-             FROM feedback f
-             LEFT JOIN dealers d ON f.dealer_id = d.id 
-             ORDER BY f.submitted_at DESC`
-        );
-        res.json(result.rows);
+        const result = await pool.query('DELETE FROM brands WHERE id = $1 RETURNING *', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Brand not found' });
+        }
+        res.json({ message: 'Brand deleted successfully', brand: result.rows[0] });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
