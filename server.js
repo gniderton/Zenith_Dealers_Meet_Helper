@@ -696,24 +696,28 @@ app.post('/api/:entity/bulk', async (req, res) => {
                     }
                 } else if (entity === 'customers' || entity === 'customer') {
                     const id = row.id || row.ID || row["ID (Only for updates)"];
-                    const customer_name = row.customer_name || row["Customer Name"];
-                    const customer_phone = row.customer_phone || row["Customer Phone"];
+                    const customer_name = row.customer_name || row["Customer Name"] || row["Customer"];
+                    const customer_phone = row.customer_phone || row["Customer Phone"] || row["Phone Number"];
                     const email = row.email || row.Email;
-                    const gstin = row.gstin || row.GSTIN;
+                    const gstin = row.gstin || row.GSTIN || row["GST"];
                     const pan = row.pan || row.PAN;
-                    const route_name = row.route_name || row["Route Name"];
-                    const employee_name = row.employee_name || row["Employee Name"] || row.dse_name;
-                    const channel_name = row.channel_name || row["Channel Name"];
-                    const whatsapp_number = row.whatsapp_number || row["WhatsApp Number"];
+                    const route_name = row.route_name || row["Route Name"] || row["Area"] || row["Route"];
+                    const employee_name = row.employee_name || row["Employee Name"] || row.dse_name || row["Employee"];
+                    const channel_name = row.channel_name || row["Channel Name"] || row["Channel"];
+                    const whatsapp_number = row.whatsapp_number || row["WhatsApp Number"] || row["Phone Number"];
+
+                    const address_line1 = row.address_line1 || row["Address"] || row["Address Line 1"];
+                    const address_line2 = row.address_line2 || row["Address Line 2"];
+                    const city = row.city || row["City"];
+                    const state = row.state || row["State"];
+                    const pincode = row.pincode || row["Pin Code"] || row["Pincode"];
+
                     const parseNum = (val, defaultVal) => {
                         if (val === null || val === undefined || val === '') return defaultVal;
                         const parsed = parseFloat(val);
                         return isNaN(parsed) ? defaultVal : parsed;
                     };
 
-                    const credit_limit = parseNum(row.credit_limit || row["Credit Limit"], 0);
-                    const credit_days = parseInt(parseNum(row.credit_days || row["Credit Days"], 0));
-                    const default_price_tier = row.default_price_tier || row["Default Price Tier"] || 'Dealer';
                     const latitude = parseNum(row.latitude || row["Latitude"], null);
                     const longitude = parseNum(row.longitude || row["Longitude"], null);
                     
@@ -747,9 +751,11 @@ app.post('/api/:entity/bulk', async (req, res) => {
                                 `UPDATE customers SET 
                                     customer_name = $1, customer_phone = $2, email = $3, gstin = $4, pan = $5,
                                     route_id = $6, employee_id = $7, channel_id = $8, whatsapp_number = $9,
-                                    location_lat = $10, location_lng = $11, is_active = $12, updated_at = CURRENT_TIMESTAMP
-                                 WHERE id = $13`,
-                                [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, id]
+                                    location_lat = $10, location_lng = $11, is_active = $12,
+                                    address_line1 = $13, address_line2 = $14, city = $15, state = $16, pincode = $17,
+                                    updated_at = CURRENT_TIMESTAMP
+                                 WHERE id = $18`,
+                                [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, address_line1 || null, address_line2 || null, city || null, state || null, pincode || null, id]
                             );
                             updatedCount++;
                             matchFound = true;
@@ -762,9 +768,11 @@ app.post('/api/:entity/bulk', async (req, res) => {
                                 `UPDATE customers SET 
                                     customer_phone = $1, email = $2, gstin = $3, pan = $4,
                                     route_id = $5, employee_id = $6, channel_id = $7, whatsapp_number = $8,
-                                    location_lat = $9, location_lng = $10, is_active = $11, updated_at = CURRENT_TIMESTAMP
-                                 WHERE customer_name = $12`,
-                                [customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, customer_name]
+                                    location_lat = $9, location_lng = $10, is_active = $11,
+                                    address_line1 = $12, address_line2 = $13, city = $14, state = $15, pincode = $16,
+                                    updated_at = CURRENT_TIMESTAMP
+                                 WHERE customer_name = $17`,
+                                [customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, address_line1 || null, address_line2 || null, city || null, state || null, pincode || null, customer_name]
                             );
                             updatedCount++;
                             matchFound = true;
@@ -775,9 +783,10 @@ app.post('/api/:entity/bulk', async (req, res) => {
                             `INSERT INTO customers (
                                 customer_name, customer_phone, email, gstin, pan,
                                 route_id, employee_id, channel_id, whatsapp_number,
-                                location_lat, location_lng, is_active
-                             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-                            [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active]
+                                location_lat, location_lng, is_active,
+                                address_line1, address_line2, city, state, pincode
+                             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+                            [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, address_line1 || null, address_line2 || null, city || null, state || null, pincode || null]
                         );
                         insertedCount++;
                     }
