@@ -207,6 +207,7 @@ app.post('/api/brands/upload', upload.single('file'), async (req, res) => {
 // POST /api/brands/bulk - Processes JSON array of brands
 app.post('/api/brands/bulk', async (req, res) => {
     const brands = req.body;
+    console.log("Received bulk brands payload:", JSON.stringify(brands, null, 2));
     if (!Array.isArray(brands)) {
         return res.status(400).json({ error: 'Expected a JSON array of brands' });
     }
