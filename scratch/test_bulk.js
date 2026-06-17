@@ -74,9 +74,6 @@ async function run() {
                     return isNaN(parsed) ? defaultVal : parsed;
                 };
 
-                const credit_limit = parseNum(row.credit_limit || row["Credit Limit"], 0);
-                const credit_days = parseInt(parseNum(row.credit_days || row["Credit Days"], 0));
-                const default_price_tier = row.default_price_tier || row["Default Price Tier"] || 'Dealer';
                 const latitude = parseNum(row.latitude || row["Latitude"], null);
                 const longitude = parseNum(row.longitude || row["Longitude"], null);
                 
@@ -109,10 +106,9 @@ async function run() {
                             `UPDATE customers SET 
                                 customer_name = $1, customer_phone = $2, email = $3, gstin = $4, pan = $5,
                                 route_id = $6, employee_id = $7, channel_id = $8, whatsapp_number = $9,
-                                credit_limit = $10, credit_days = $11, default_price_tier = $12,
-                                latitude = $13, longitude = $14, is_active = $15, updated_at = CURRENT_TIMESTAMP
-                             WHERE id = $16`,
-                            [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, credit_limit, credit_days, default_price_tier, latitude || null, longitude || null, is_active, id]
+                                location_lat = $10, location_lng = $11, is_active = $12, updated_at = CURRENT_TIMESTAMP
+                             WHERE id = $13`,
+                            [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, id]
                         );
                         updatedCount++;
                         matchFound = true;
@@ -125,10 +121,9 @@ async function run() {
                             `UPDATE customers SET 
                                 customer_phone = $1, email = $2, gstin = $3, pan = $4,
                                 route_id = $5, employee_id = $6, channel_id = $7, whatsapp_number = $8,
-                                credit_limit = $9, credit_days = $10, default_price_tier = $11,
-                                latitude = $12, longitude = $13, is_active = $14, updated_at = CURRENT_TIMESTAMP
-                             WHERE customer_name = $15`,
-                            [customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, credit_limit, credit_days, default_price_tier, latitude || null, longitude || null, is_active, customer_name]
+                                location_lat = $9, location_lng = $10, is_active = $11, updated_at = CURRENT_TIMESTAMP
+                             WHERE customer_name = $12`,
+                            [customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, customer_name]
                         );
                         updatedCount++;
                         matchFound = true;
@@ -139,10 +134,9 @@ async function run() {
                         `INSERT INTO customers (
                             customer_name, customer_phone, email, gstin, pan,
                             route_id, employee_id, channel_id, whatsapp_number,
-                            credit_limit, credit_days, default_price_tier,
-                            latitude, longitude, is_active
-                         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-                        [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, credit_limit, credit_days, default_price_tier, latitude || null, longitude || null, is_active]
+                            location_lat, location_lng, is_active
+                         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+                        [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active]
                     );
                     insertedCount++;
                 }
