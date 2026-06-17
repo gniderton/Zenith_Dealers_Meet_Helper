@@ -62,6 +62,94 @@ app.get('/health', (req, res) => {
     res.json({ status: 'UP', timestamp: new Date() });
 });
 
+// GET /api/:entity/template - Downloads Excel template dynamically
+app.get('/api/:entity/template', (req, res) => {
+    const { entity } = req.params;
+    let templateData = [];
+
+    switch (entity.toLowerCase()) {
+        case 'brands':
+        case 'brand':
+            templateData = [{
+                "ID (Only for updates)": "",
+                "Brand Name": "Example Brand",
+                "Brand Code (Only for updates)": "",
+                "Description": "This is an optional description of the brand",
+                "Logo URL": "https://example.com/logo.png",
+                "Status": "Active"
+            }];
+            break;
+        case 'categories':
+        case 'category':
+            templateData = [{
+                "ID (Only for updates)": "",
+                "Category Name": "Example Category",
+                "Category Code (Only for updates)": "",
+                "Description": "This is an optional description of the category",
+                "Status": "Active"
+            }];
+            break;
+        case 'channels':
+        case 'channel':
+            templateData = [{
+                "ID (Only for updates)": "",
+                "Channel Name": "Example Channel",
+                "Channel Code (Only for updates)": "",
+                "Description": "This is an optional description of the channel",
+                "Status": "Active"
+            }];
+            break;
+        case 'employees':
+        case 'employee':
+            templateData = [{
+                "ID (Only for updates)": "",
+                "Employee Name": "John Doe",
+                "Employee Code (Only for updates)": "",
+                "Email": "john.doe@example.com",
+                "Mobile": "9876543210",
+                "Designation": "Sales Manager",
+                "Status": "Active"
+            }];
+            break;
+        case 'gst':
+            templateData = [{
+                "ID (Only for updates)": "",
+                "GST Name": "GST 18%",
+                "GST Rate": 18.00,
+                "Description": "Standard 18% GST rate",
+                "Status": "Active"
+            }];
+            break;
+        case 'hsn':
+        case 'hsn_codes':
+        case 'hsn code':
+            templateData = [{
+                "ID (Only for updates)": "",
+                "HSN Code": "84713010",
+                "Description": "Laptop computers",
+                "GST ID": "",
+                "GST Rate": 18.00,
+                "Status": "Active"
+            }];
+            break;
+        default:
+            return res.status(400).json({ error: `Template for entity '${entity}' is not supported.` });
+    }
+
+    try {
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(templateData);
+        XLSX.utils.book_append_sheet(wb, ws, `${entity} Template`);
+        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Disposition', `attachment; filename="${entity.toLowerCase()}_template.xlsx"`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to generate template: ' + err.message });
+    }
+});
+
 // ==========================================
 // 1. BRANDS ENDPOINTS
 // ==========================================
