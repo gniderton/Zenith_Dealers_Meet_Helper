@@ -1105,6 +1105,7 @@ app.post('/api/meet/assign', async (req, res) => {
 
 // 3. Sync punched order from mobile and free up the employee
 app.post('/api/meet/orders', async (req, res) => {
+    console.log("POST /api/meet/orders received body:", JSON.stringify(req.body, null, 2));
     const { customer_id, employee_id, items } = req.body;
     if (!customer_id || !employee_id || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: 'customer_id, employee_id, and non-empty items array are required' });
