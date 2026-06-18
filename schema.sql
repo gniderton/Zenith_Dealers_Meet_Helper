@@ -165,3 +165,38 @@ CREATE TABLE IF NOT EXISTS customers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 12. Event Checkins table
+CREATE TABLE IF NOT EXISTS event_checkins (
+    id SERIAL PRIMARY KEY,
+    customer_id INT REFERENCES customers(id) ON DELETE CASCADE,
+    checked_in_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    required_materials TEXT,
+    employee_id INT REFERENCES employees(id) ON DELETE SET NULL,
+    assigned_at TIMESTAMP WITH TIME ZONE,
+    status VARCHAR(20) DEFAULT 'Arrived',
+    feedback TEXT,
+    gifts_collected BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 13. Meet Orders (Headers)
+CREATE TABLE IF NOT EXISTS meet_orders (
+    id SERIAL PRIMARY KEY,
+    customer_id INT REFERENCES customers(id) ON DELETE CASCADE,
+    employee_id INT REFERENCES employees(id) ON DELETE SET NULL,
+    total_amount NUMERIC(15, 2) DEFAULT 0.00,
+    synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 14. Meet Order Items (Lines)
+CREATE TABLE IF NOT EXISTS meet_order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INT REFERENCES meet_orders(id) ON DELETE CASCADE,
+    product_id INT REFERENCES products(id) ON DELETE CASCADE,
+    quantity INT NOT NULL,
+    rate NUMERIC(15, 2) NOT NULL,
+    amount NUMERIC(15, 2) NOT NULL
+);

@@ -889,6 +889,143 @@ app.delete('/api/:entity', async (req, res) => {
     }
 });
 
+// ==========================================
+// DEALERS MEET EVENT ENDPOINTS
+// ==========================================
+
+// 1. Check-in customer
+app.post('/api/meet/checkin', async (req, res) => {
+    const { customer_id, required_materials } = req.body;
+    if (!customer_id) {
+        return res.status(400).json({ error: 'customer_id is required' });
+    }
+    try {
+        const result = await pool.query(
+            `INSERT INTO event_checkins (customer_id, required_materials, status)
+             VALUES ($1, $2, 'Arrived') RETURNING *`,
+            [customer_id, required_materials || null]
+        );
+        res.json({ success: true, checkin: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 2. Assign employee to customer
+app.post('/api/meet/assign', async (req, res) => {
+    const { checkin_id, employee_id } = req.body;
+    if (!checkin_id || !employee_id) {
+        return res.status(400).json({ error: 'checkin_id and employee_id are required' });
+    }
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        // 1. Update checkin status
+        const checkinUpdate = await client.query(
+            `UPDATE event_checkins 
+             SET employee_id = $1, status = 'Engaged', assigned_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $2 RETURNING *`,
+            [employee_id, checkin_id]
+        );
+
+        if (checkinUpdate.rowCount === 0) {
+            throw new Error('Checkin record not found');
+        }
+
+        // 2. Set employee status to Engaged
+        await client.query(
+            `UPDATE employees SET status = 'Engaged', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+            [employee_id]
+        );
+
+        await client.query('COMMIT');
+        res.json({ success: true, checkin: checkinUpdate.rows[0] });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// 3. Sync punched order from mobile and free up the employee
+app.post('/api/meet/orders', async (req, res) => {
+    const { customer_id, employee_id, items } = req.body;
+    if (!customer_id || !employee_id || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'customer_id, employee_id, and non-empty items array are required' });
+    }
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 1. Calculate total order amount
+        let total = 0;
+        for (const item of items) {
+            const qty = parseInt(item.quantity) || 0;
+            const rate = parseFloat(item.rate) || 0;
+            total += qty * rate;
+        }
+
+        // 2. Insert order header
+        const orderRes = await client.query(
+            `INSERT INTO meet_orders (customer_id, employee_id, total_amount) 
+             VALUES ($1, $2, $3) RETURNING id`,
+            [customer_id, employee_id, total]
+        );
+        const orderId = orderRes.rows[0].id;
+
+        // 3. Insert order lines
+        for (const item of items) {
+            const qty = parseInt(item.quantity) || 0;
+            const rate = parseFloat(item.rate) || 0;
+            const amount = qty * rate;
+            await client.query(
+                `INSERT INTO meet_order_items (order_id, product_id, quantity, rate, amount)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [orderId, item.product_id, qty, rate, amount]
+            );
+        }
+
+        // 4. Free up employee (make them Active again)
+        await client.query(
+            `UPDATE employees SET status = 'Active', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+            [employee_id]
+        );
+
+        await client.query('COMMIT');
+        res.json({ success: true, orderId: orderId, totalAmount: total });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// 4. Checkout completion from the counter
+app.post('/api/meet/complete', async (req, res) => {
+    const { checkin_id, feedback, gifts_collected } = req.body;
+    if (!checkin_id) {
+        return res.status(400).json({ error: 'checkin_id is required' });
+    }
+    try {
+        const result = await pool.query(
+            `UPDATE event_checkins 
+             SET status = 'Completed', feedback = $1, gifts_collected = $2, 
+                 completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $3 RETURNING *`,
+            [feedback || null, gifts_collected === true, checkin_id]
+        );
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Checkin record not found' });
+        }
+        res.json({ success: true, checkin: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
