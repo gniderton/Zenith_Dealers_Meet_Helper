@@ -748,12 +748,38 @@ app.post('/api/:entity/bulk', async (req, res) => {
                     let dse_id = null;
                     if (employee_name) {
                         const check = await client.query('SELECT id FROM employees WHERE employee_name = $1 LIMIT 1', [employee_name]);
-                        if (check.rows.length > 0) dse_id = check.rows[0].id;
+                        if (check.rows.length > 0) {
+                            dse_id = check.rows[0].id;
+                        } else {
+                            try {
+                                const newEmp = await client.query(
+                                    "INSERT INTO employees (employee_name, status) VALUES ($1, 'Active') RETURNING id",
+                                    [employee_name]
+                                );
+                                dse_id = newEmp.rows[0].id;
+                            } catch (e) {
+                                const check2 = await client.query('SELECT id FROM employees WHERE employee_name = $1 LIMIT 1', [employee_name]);
+                                if (check2.rows.length > 0) dse_id = check2.rows[0].id;
+                            }
+                        }
                     }
                     let channel_id = null;
                     if (channel_name) {
                         const check = await client.query('SELECT id FROM channels WHERE channel_name = $1 LIMIT 1', [channel_name]);
-                        if (check.rows.length > 0) channel_id = check.rows[0].id;
+                        if (check.rows.length > 0) {
+                            channel_id = check.rows[0].id;
+                        } else {
+                            try {
+                                const newChannel = await client.query(
+                                    "INSERT INTO channels (channel_name, channel_code, status) VALUES ($1, $2, 'Active') RETURNING id",
+                                    [channel_name, channel_name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 3).toUpperCase()]
+                                );
+                                channel_id = newChannel.rows[0].id;
+                            } catch (e) {
+                                const check2 = await client.query('SELECT id FROM channels WHERE channel_name = $1 LIMIT 1', [channel_name]);
+                                if (check2.rows.length > 0) channel_id = check2.rows[0].id;
+                            }
+                        }
                     }
 
                     let matchFound = false;
