@@ -922,7 +922,13 @@ app.get('/api/meet/checkins/unassigned', async (req, res) => {
                 c.customer_code, 
                 ec.status, 
                 ec.checked_in_at,
-                ec.required_materials
+                ec.required_materials,
+                ec.visitor_name,
+                ec.contact_number,
+                ec.no_of_people,
+                ec.vehicle_number,
+                ec.badge_number,
+                ec.checkin_notes
             FROM event_checkins ec
             JOIN customers c ON ec.customer_id = c.id
             WHERE ec.status = 'Arrived'
@@ -963,7 +969,13 @@ app.get('/api/meet/checkins/active', async (req, res) => {
                 ec.assigned_at,
                 e.id as employee_id,
                 e.employee_name as assigned_employee,
-                ec.required_materials
+                ec.required_materials,
+                ec.visitor_name,
+                ec.contact_number,
+                ec.no_of_people,
+                ec.vehicle_number,
+                ec.badge_number,
+                ec.checkin_notes
             FROM event_checkins ec
             JOIN customers c ON ec.customer_id = c.id
             LEFT JOIN employees e ON ec.employee_id = e.id
@@ -994,6 +1006,12 @@ app.get('/api/meet/checkins/completed', async (req, res) => {
                 ec.required_materials,
                 ec.feedback,
                 ec.gifts_collected,
+                ec.visitor_name,
+                ec.contact_number,
+                ec.no_of_people,
+                ec.vehicle_number,
+                ec.badge_number,
+                ec.checkin_notes,
                 (SELECT total_amount FROM meet_orders WHERE customer_id = c.id ORDER BY synced_at DESC LIMIT 1) as total_amount
             FROM event_checkins ec
             JOIN customers c ON ec.customer_id = c.id
@@ -1009,15 +1027,37 @@ app.get('/api/meet/checkins/completed', async (req, res) => {
 
 // 1. Check-in customer
 app.post('/api/meet/checkin', async (req, res) => {
-    const { customer_id, required_materials } = req.body;
+    const { 
+        customer_id, 
+        required_materials, 
+        visitor_name, 
+        contact_number, 
+        no_of_people, 
+        vehicle_number, 
+        badge_number, 
+        checkin_notes 
+    } = req.body;
+    
     if (!customer_id) {
         return res.status(400).json({ error: 'customer_id is required' });
     }
     try {
         const result = await pool.query(
-            `INSERT INTO event_checkins (customer_id, required_materials, status)
-             VALUES ($1, $2, 'Arrived') RETURNING *`,
-            [customer_id, required_materials || null]
+            `INSERT INTO event_checkins (
+                customer_id, required_materials, visitor_name, contact_number, 
+                no_of_people, vehicle_number, badge_number, checkin_notes, status
+             )
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'Arrived') RETURNING *`,
+            [
+                customer_id, 
+                required_materials || null, 
+                visitor_name || null, 
+                contact_number || null, 
+                parseInt(no_of_people) || 1, 
+                vehicle_number || null, 
+                badge_number || null, 
+                checkin_notes || null
+            ]
         );
         res.json({ success: true, checkin: result.rows[0] });
     } catch (err) {

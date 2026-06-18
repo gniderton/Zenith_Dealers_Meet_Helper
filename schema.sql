@@ -178,6 +178,12 @@ CREATE TABLE IF NOT EXISTS event_checkins (
     feedback TEXT,
     gifts_collected BOOLEAN DEFAULT FALSE,
     completed_at TIMESTAMP WITH TIME ZONE,
+    visitor_name VARCHAR(150),
+    contact_number VARCHAR(15),
+    no_of_people INT DEFAULT 1,
+    vehicle_number VARCHAR(50),
+    badge_number VARCHAR(50),
+    checkin_notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
