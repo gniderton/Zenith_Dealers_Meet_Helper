@@ -893,16 +893,40 @@ app.delete('/api/:entity', async (req, res) => {
 // DEALERS MEET EVENT ENDPOINTS
 // ==========================================
 
-// GET unassigned customers
-app.get('/api/meet/customers/unassigned', async (req, res) => {
+// GET all customers for check-in lookup
+app.get('/api/meet/customers/all', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT c.id, c.customer_name, c.customer_code, r.route_name
+            SELECT c.id, c.customer_name, c.customer_code, r.route_name,
+                   CASE WHEN ec.id IS NOT NULL THEN true ELSE false END as is_checked_in,
+                   ec.status as checkin_status
             FROM customers c
             LEFT JOIN routes r ON c.route_id = r.id
             LEFT JOIN event_checkins ec ON c.id = ec.customer_id
-            WHERE ec.id IS NULL OR ec.status = 'Arrived'
             ORDER BY c.customer_name ASC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET arrived but unassigned check-ins (customer checked in but not yet assigned to employee)
+app.get('/api/meet/checkins/unassigned', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                ec.id as checkin_id, 
+                c.id as customer_id,
+                c.customer_name, 
+                c.customer_code, 
+                ec.status, 
+                ec.checked_in_at,
+                ec.required_materials
+            FROM event_checkins ec
+            JOIN customers c ON ec.customer_id = c.id
+            WHERE ec.status = 'Arrived'
+            ORDER BY ec.id DESC
         `);
         res.json(result.rows);
     } catch (err) {
@@ -925,7 +949,7 @@ app.get('/api/meet/employees/available', async (req, res) => {
     }
 });
 
-// GET active checkins
+// GET active engaged pairs (Arrived and Engaged)
 app.get('/api/meet/checkins/active', async (req, res) => {
     try {
         const result = await pool.query(`
@@ -936,13 +960,45 @@ app.get('/api/meet/checkins/active', async (req, res) => {
                 c.customer_code, 
                 ec.status, 
                 ec.checked_in_at, 
+                ec.assigned_at,
                 e.id as employee_id,
                 e.employee_name as assigned_employee,
                 ec.required_materials
             FROM event_checkins ec
             JOIN customers c ON ec.customer_id = c.id
             LEFT JOIN employees e ON ec.employee_id = e.id
-            WHERE ec.status != 'Completed'
+            WHERE ec.status = 'Engaged'
+            ORDER BY ec.id DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET completed sessions (customer completed order and checkout)
+app.get('/api/meet/checkins/completed', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                ec.id as checkin_id, 
+                c.id as customer_id,
+                c.customer_name, 
+                c.customer_code, 
+                ec.status, 
+                ec.checked_in_at, 
+                ec.assigned_at,
+                ec.completed_at,
+                e.id as employee_id,
+                e.employee_name as assigned_employee,
+                ec.required_materials,
+                ec.feedback,
+                ec.gifts_collected,
+                (SELECT total_amount FROM meet_orders WHERE customer_id = c.id ORDER BY synced_at DESC LIMIT 1) as total_amount
+            FROM event_checkins ec
+            JOIN customers c ON ec.customer_id = c.id
+            LEFT JOIN employees e ON ec.employee_id = e.id
+            WHERE ec.status = 'Completed'
             ORDER BY ec.id DESC
         `);
         res.json(result.rows);
