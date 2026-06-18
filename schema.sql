@@ -147,7 +147,7 @@ CREATE TABLE IF NOT EXISTS customers (
     customer_name VARCHAR(200) NOT NULL,
     customer_phone VARCHAR(15),
     email VARCHAR(100),
-    gstin VARCHAR(15),
+    gstin VARCHAR(20),
     pan VARCHAR(10),
     route_id INT REFERENCES routes(id) ON DELETE SET NULL,
     employee_id INT REFERENCES employees(id) ON DELETE SET NULL,
