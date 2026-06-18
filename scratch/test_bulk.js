@@ -10,15 +10,13 @@ const payload = [
   {
     "data": [
       [
-        "ID (Only for updates)", "Customer Name", "Customer Phone", "Email", "GSTIN", "PAN", 
-        "Route Name", "Employee Name", "Channel Name", "WhatsApp Number", "Credit Limit", 
-        "Credit Days", "Default Price Tier", "Latitude", "Longitude", "Is Active"
+        "Customer Code", "Customer", "Phone Number", "Address", "Area", "Pin Code", "GST"
       ],
       [
-        null, "A One Traders", null, null, "", null, "Friday", "Saifudheeen MC", "Dealer", null, null, 30, "Dealer", null, null, "Yes"
+        "CUST0001", "A One Traders Test", "9876543210", "123 Main St", "Friday", "673001", "32ABCDE1234F1Z1"
       ]
     ],
-    "name": "Customers Template"
+    "name": "Customers"
   }
 ];
 
@@ -58,16 +56,22 @@ async function run() {
 
             try {
                 const id = row.id || row.ID || row["ID (Only for updates)"];
-                const customer_name = row.customer_name || row["Customer Name"];
-                const customer_phone = row.customer_phone || row["Customer Phone"];
+                const customer_name = row.customer_name || row["Customer Name"] || row["Customer"];
+                const customer_phone = row.customer_phone || row["Customer Phone"] || row["Phone Number"];
                 const email = row.email || row.Email;
-                const gstin = row.gstin || row.GSTIN;
+                const gstin = row.gstin || row.GSTIN || row["GST"];
                 const pan = row.pan || row.PAN;
-                const route_name = row.route_name || row["Route Name"];
-                const employee_name = row.employee_name || row["Employee Name"] || row.dse_name;
-                const channel_name = row.channel_name || row["Channel Name"];
-                const whatsapp_number = row.whatsapp_number || row["WhatsApp Number"];
-                
+                const route_name = row.route_name || row["Route Name"] || row["Area"] || row["Route"];
+                const employee_name = row.employee_name || row["Employee Name"] || row.dse_name || row["Employee"];
+                const channel_name = row.channel_name || row["Channel Name"] || row["Channel"];
+                const whatsapp_number = row.whatsapp_number || row["WhatsApp Number"] || row["Phone Number"];
+
+                const address_line1 = row.address_line1 || row["Address"] || row["Address Line 1"];
+                const address_line2 = row.address_line2 || row["Address Line 2"];
+                const city = row.city || row["City"];
+                const state = row.state || row["State"];
+                const pincode = row.pincode || row["Pin Code"] || row["Pincode"];
+
                 const parseNum = (val, defaultVal) => {
                     if (val === null || val === undefined || val === '') return defaultVal;
                     const parsed = parseFloat(val);
@@ -82,6 +86,7 @@ async function run() {
 
                 if (!customer_name) throw new Error('Customer Name is missing');
 
+                // Resolve IDs
                 let route_id = null;
                 if (route_name) {
                     const check = await client.query('SELECT id FROM routes WHERE route_name = $1 LIMIT 1', [route_name]);
@@ -106,9 +111,11 @@ async function run() {
                             `UPDATE customers SET 
                                 customer_name = $1, customer_phone = $2, email = $3, gstin = $4, pan = $5,
                                 route_id = $6, employee_id = $7, channel_id = $8, whatsapp_number = $9,
-                                location_lat = $10, location_lng = $11, is_active = $12, updated_at = CURRENT_TIMESTAMP
-                             WHERE id = $13`,
-                            [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, id]
+                                location_lat = $10, location_lng = $11, is_active = $12,
+                                address_line1 = $13, address_line2 = $14, city = $15, state = $16, pincode = $17,
+                                updated_at = CURRENT_TIMESTAMP
+                             WHERE id = $18`,
+                            [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, address_line1 || null, address_line2 || null, city || null, state || null, pincode || null, id]
                         );
                         updatedCount++;
                         matchFound = true;
@@ -121,9 +128,11 @@ async function run() {
                             `UPDATE customers SET 
                                 customer_phone = $1, email = $2, gstin = $3, pan = $4,
                                 route_id = $5, employee_id = $6, channel_id = $7, whatsapp_number = $8,
-                                location_lat = $9, location_lng = $10, is_active = $11, updated_at = CURRENT_TIMESTAMP
-                             WHERE customer_name = $12`,
-                            [customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, customer_name]
+                                location_lat = $9, location_lng = $10, is_active = $11,
+                                address_line1 = $12, address_line2 = $13, city = $14, state = $15, pincode = $16,
+                                updated_at = CURRENT_TIMESTAMP
+                             WHERE customer_name = $17`,
+                            [customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, address_line1 || null, address_line2 || null, city || null, state || null, pincode || null, customer_name]
                         );
                         updatedCount++;
                         matchFound = true;
@@ -134,9 +143,10 @@ async function run() {
                         `INSERT INTO customers (
                             customer_name, customer_phone, email, gstin, pan,
                             route_id, employee_id, channel_id, whatsapp_number,
-                            location_lat, location_lng, is_active
-                         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-                        [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active]
+                            location_lat, location_lng, is_active,
+                            address_line1, address_line2, city, state, pincode
+                         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+                        [customer_name, customer_phone || null, email || null, gstin || null, pan || null, route_id, dse_id, channel_id, whatsapp_number || null, latitude, longitude, is_active, address_line1 || null, address_line2 || null, city || null, state || null, pincode || null]
                     );
                     insertedCount++;
                 }
@@ -147,7 +157,7 @@ async function run() {
         }
 
         await client.query('COMMIT');
-        console.log("Success! Summary:", { totalRows: rawBody.length, inserted: insertedCount, updated: updatedCount, failed: errors.length });
+        console.log("Success! Summary:", { totalRows: rawBody.length, inserted: insertedCount, updated: updatedCount, failed: errors.length }, "Errors:", errors);
     } catch (err) {
         console.error("Outer transaction block failed:", err);
         await client.query('ROLLBACK');

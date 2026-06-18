@@ -730,7 +730,20 @@ app.post('/api/:entity/bulk', async (req, res) => {
                     let route_id = null;
                     if (route_name) {
                         const check = await client.query('SELECT id FROM routes WHERE route_name = $1 LIMIT 1', [route_name]);
-                        if (check.rows.length > 0) route_id = check.rows[0].id;
+                        if (check.rows.length > 0) {
+                            route_id = check.rows[0].id;
+                        } else {
+                            try {
+                                const newRoute = await client.query(
+                                    'INSERT INTO routes (route_name, status) VALUES ($1, $2) RETURNING id',
+                                    [route_name, 'Active']
+                                );
+                                route_id = newRoute.rows[0].id;
+                            } catch (e) {
+                                const check2 = await client.query('SELECT id FROM routes WHERE route_name = $1 LIMIT 1', [route_name]);
+                                if (check2.rows.length > 0) route_id = check2.rows[0].id;
+                            }
+                        }
                     }
                     let dse_id = null;
                     if (employee_name) {
