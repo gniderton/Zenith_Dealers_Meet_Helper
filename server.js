@@ -893,6 +893,64 @@ app.delete('/api/:entity', async (req, res) => {
 // DEALERS MEET EVENT ENDPOINTS
 // ==========================================
 
+// GET unassigned customers
+app.get('/api/meet/customers/unassigned', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT c.id, c.customer_name, c.customer_code, r.route_name
+            FROM customers c
+            LEFT JOIN routes r ON c.route_id = r.id
+            LEFT JOIN event_checkins ec ON c.id = ec.customer_id
+            WHERE ec.id IS NULL OR ec.status = 'Arrived'
+            ORDER BY c.customer_name ASC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET available employees
+app.get('/api/meet/employees/available', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT id, employee_name, employee_code, status 
+            FROM employees 
+            WHERE status = 'Active' 
+            ORDER BY employee_name ASC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET active checkins
+app.get('/api/meet/checkins/active', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                ec.id as checkin_id, 
+                c.id as customer_id,
+                c.customer_name, 
+                c.customer_code, 
+                ec.status, 
+                ec.checked_in_at, 
+                e.id as employee_id,
+                e.employee_name as assigned_employee,
+                ec.required_materials
+            FROM event_checkins ec
+            JOIN customers c ON ec.customer_id = c.id
+            LEFT JOIN employees e ON ec.employee_id = e.id
+            WHERE ec.status != 'Completed'
+            ORDER BY ec.id DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 1. Check-in customer
 app.post('/api/meet/checkin', async (req, res) => {
     const { customer_id, required_materials } = req.body;
