@@ -1059,6 +1059,87 @@ app.get('/api/meet/checkins/ready', async (req, res) => {
     }
 });
 
+// GET meet event settings for branding
+app.get('/api/meet/settings', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT key, value FROM meet_settings');
+        const settingsObj = {};
+        result.rows.forEach(row => {
+            settingsObj[row.key] = row.value;
+        });
+        res.json(settingsObj);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET aggregated order details and visit metrics by checkin_id for PDF print
+app.get('/api/meet/orders/by-checkin/:checkin_id', async (req, res) => {
+    const { checkin_id } = req.params;
+    try {
+        const checkinQuery = await pool.query(`
+            SELECT 
+                ec.id as checkin_id,
+                ec.checked_in_at,
+                ec.assigned_at,
+                ec.completed_at,
+                ec.visitor_name,
+                ec.contact_number,
+                ec.no_of_people,
+                ec.vehicle_number,
+                ec.badge_number,
+                ec.checkin_notes,
+                c.customer_name,
+                c.customer_code,
+                c.customer_phone,
+                c.gstin,
+                r.route_name as route,
+                e.employee_name as assigned_employee,
+                (SELECT employee_name FROM employees WHERE id = c.employee_id) as default_employee,
+                mo.id as order_id,
+                mo.total_amount
+            FROM event_checkins ec
+            JOIN customers c ON ec.customer_id = c.id
+            LEFT JOIN routes r ON c.route_id = r.id
+            LEFT JOIN employees e ON ec.employee_id = e.id
+            LEFT JOIN meet_orders mo ON c.id = mo.customer_id
+            WHERE ec.id = $1
+            LIMIT 1
+        `, [checkin_id]);
+
+        if (checkinQuery.rowCount === 0) {
+            return res.status(404).json({ error: 'Check-in session not found' });
+        }
+
+        const orderInfo = checkinQuery.rows[0];
+
+        let items = [];
+        if (orderInfo.order_id) {
+            const itemsQuery = await pool.query(`
+                SELECT 
+                    moi.id as line_id,
+                    p.product_name,
+                    p.uom,
+                    moi.quantity,
+                    moi.rate,
+                    moi.amount
+                FROM meet_order_items moi
+                JOIN products p ON moi.product_id = p.id
+                WHERE moi.order_id = $1
+                ORDER BY p.product_name ASC
+            `, [orderInfo.order_id]);
+            items = itemsQuery.rows;
+        }
+
+        res.json({
+            ...orderInfo,
+            items: items
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 1. Check-in customer
 app.post('/api/meet/checkin', async (req, res) => {
     const { 
