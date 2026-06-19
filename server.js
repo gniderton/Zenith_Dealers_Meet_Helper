@@ -230,7 +230,7 @@ app.get('/api/:entity', async (req, res) => {
         `;
     } else if (entity === 'products' || entity === 'product') {
         queryStr = `
-            SELECT p.*, b.brand_name, c.category_name, h.hsn_code, g.gst_name as tax_name 
+            SELECT p.*, b.brand_name, c.category_name, h.hsn_code, g.gst_name as tax_name, COALESCE(g.gst_rate, 0.00)::numeric::float as tax_percentage 
             FROM products p
             LEFT JOIN brands b ON p.brand_id = b.id
             LEFT JOIN categories c ON p.category_id = c.id
