@@ -1025,6 +1025,40 @@ app.get('/api/meet/checkins/completed', async (req, res) => {
     }
 });
 
+// GET sessions ready for checkout (order synced but not completed)
+app.get('/api/meet/checkins/ready', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                ec.id as checkin_id, 
+                c.id as customer_id,
+                c.customer_name, 
+                c.customer_code, 
+                ec.status, 
+                ec.checked_in_at, 
+                ec.assigned_at,
+                e.id as employee_id,
+                e.employee_name as assigned_employee,
+                ec.required_materials,
+                ec.visitor_name,
+                ec.contact_number,
+                ec.no_of_people,
+                ec.vehicle_number,
+                ec.badge_number,
+                ec.checkin_notes,
+                (SELECT total_amount FROM meet_orders WHERE customer_id = c.id ORDER BY synced_at DESC LIMIT 1) as total_amount
+            FROM event_checkins ec
+            JOIN customers c ON ec.customer_id = c.id
+            LEFT JOIN employees e ON ec.employee_id = e.id
+            WHERE ec.status = 'Ready for Checkout'
+            ORDER BY ec.id DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 1. Check-in customer
 app.post('/api/meet/checkin', async (req, res) => {
     const { 
@@ -1142,7 +1176,15 @@ app.post('/api/meet/orders', async (req, res) => {
             );
         }
 
-        // 4. Free up employee (make them Active again)
+        // 4. Update checkin status to 'Ready for Checkout'
+        await client.query(
+            `UPDATE event_checkins 
+             SET status = 'Ready for Checkout', updated_at = CURRENT_TIMESTAMP 
+             WHERE customer_id = $1 AND employee_id = $2 AND status = 'Engaged'`,
+            [customer_id, employee_id]
+        );
+
+        // 5. Free up employee (make them Active again)
         await client.query(
             `UPDATE employees SET status = 'Active', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
             [employee_id]
