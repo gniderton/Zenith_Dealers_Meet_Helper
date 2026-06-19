@@ -1548,6 +1548,38 @@ app.get('/api/meet/orders/consolidate', async (req, res) => {
     }
 });
 
+// 9. GET breakdown of consolidated product quantity by customer
+app.get('/api/meet/orders/consolidate/product/:product_id', async (req, res) => {
+    const { product_id } = req.params;
+    const { order_ids } = req.query;
+    if (!order_ids) {
+        return res.json([]);
+    }
+    const ids = String(order_ids).split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+    if (ids.length === 0) {
+        return res.json([]);
+    }
+    try {
+        const result = await pool.query(`
+            SELECT 
+                c.id as customer_id,
+                c.customer_name,
+                c.customer_code,
+                moi.quantity,
+                moi.rate,
+                moi.amount
+            FROM meet_order_items moi
+            JOIN meet_orders mo ON moi.order_id = mo.id
+            JOIN customers c ON mo.customer_id = c.id
+            WHERE moi.product_id = $1 AND moi.order_id = ANY($2::int[])
+            ORDER BY moi.quantity DESC
+        `, [parseInt(product_id), ids]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
