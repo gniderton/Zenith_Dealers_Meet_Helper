@@ -206,3 +206,11 @@ CREATE TABLE IF NOT EXISTS meet_order_items (
     rate NUMERIC(15, 2) NOT NULL,
     amount NUMERIC(15, 2) NOT NULL
 );
+
+-- 15. Meet Settings Table for Event Branding
+CREATE TABLE IF NOT EXISTS meet_settings (
+    key VARCHAR(100) PRIMARY KEY,
+    value TEXT NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
