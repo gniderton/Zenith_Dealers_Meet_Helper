@@ -1120,11 +1120,18 @@ app.get('/api/meet/orders/by-checkin/:checkin_id', async (req, res) => {
                     moi.id as line_id,
                     p.product_name,
                     p.uom,
+                    p.mrp,
+                    b.brand_name,
+                    cat.category_name,
+                    g.gst_rate,
                     moi.quantity,
                     moi.rate,
                     moi.amount
                 FROM meet_order_items moi
                 JOIN products p ON moi.product_id = p.id
+                LEFT JOIN brands b ON p.brand_id = b.id
+                LEFT JOIN categories cat ON p.category_id = cat.id
+                LEFT JOIN gst g ON p.tax_id = g.id
                 WHERE moi.order_id = $1
                 ORDER BY p.product_name ASC
             `, [orderInfo.order_id]);
