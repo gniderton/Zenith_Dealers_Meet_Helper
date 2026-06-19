@@ -1386,6 +1386,40 @@ app.get('/api/meet/reports/dashboard', async (req, res) => {
             LIMIT 10
         `);
 
+        // 5. Top Brands by order value
+        const topBrandsQuery = await pool.query(`
+            SELECT 
+                COALESCE(b.brand_name, 'Other') as brand_name,
+                COALESCE(SUM(moi.amount), 0) as total_value
+            FROM meet_order_items moi
+            JOIN products p ON moi.product_id = p.id
+            LEFT JOIN brands b ON p.brand_id = b.id
+            GROUP BY b.brand_name
+            ORDER BY total_value DESC
+            LIMIT 5
+        `);
+
+        // 6. Top Categories by order value
+        const topCategoriesQuery = await pool.query(`
+            SELECT 
+                COALESCE(cat.category_name, 'Other') as category_name,
+                COALESCE(SUM(moi.amount), 0) as total_value
+            FROM meet_order_items moi
+            JOIN products p ON moi.product_id = p.id
+            LEFT JOIN categories cat ON p.category_id = cat.id
+            GROUP BY cat.category_name
+            ORDER BY total_value DESC
+            LIMIT 5
+        `);
+
+        // 7. Average Duration of visits
+        const durationQuery = await pool.query(`
+            SELECT COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - checked_in_at))/60), 0) as avg_duration_mins
+            FROM event_checkins
+            WHERE status = 'Completed'
+        `);
+        const avgDuration = parseFloat(durationQuery.rows[0].avg_duration_mins) || 0;
+
         res.json({
             summary: {
                 total_registered: parseInt(summary.total_registered) || 0,
@@ -1395,7 +1429,8 @@ app.get('/api/meet/reports/dashboard', async (req, res) => {
                 ready_for_checkout: parseInt(summary.ready_for_checkout) || 0,
                 completed: parseInt(summary.completed) || 0,
                 total_order_value: parseFloat(summary.total_order_value) || 0,
-                gifts_collected: parseInt(summary.gifts_collected) || 0
+                gifts_collected: parseInt(summary.gifts_collected) || 0,
+                avg_duration_mins: Math.round(avgDuration)
             },
             dse_performance: dseQuery.rows.map(row => ({
                 ...row,
@@ -1411,6 +1446,14 @@ app.get('/api/meet/reports/dashboard', async (req, res) => {
             recent_orders: recentOrdersQuery.rows.map(row => ({
                 ...row,
                 total_amount: parseFloat(row.total_amount) || 0
+            })),
+            top_brands: topBrandsQuery.rows.map(row => ({
+                brand_name: row.brand_name,
+                total_value: parseFloat(row.total_value) || 0
+            })),
+            top_categories: topCategoriesQuery.rows.map(row => ({
+                category_name: row.category_name,
+                total_value: parseFloat(row.total_value) || 0
             }))
         });
     } catch (err) {
