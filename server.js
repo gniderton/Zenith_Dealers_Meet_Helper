@@ -1512,10 +1512,14 @@ app.get('/api/meet/orders/:order_id/lines', async (req, res) => {
     }
 });
 
-// 8. POST consolidate selected orders product summary
-app.post('/api/meet/orders/consolidate', async (req, res) => {
-    const { order_ids } = req.body;
-    if (!Array.isArray(order_ids) || order_ids.length === 0) {
+// 8. GET consolidate selected orders product summary (Fetch request)
+app.get('/api/meet/orders/consolidate', async (req, res) => {
+    const { order_ids } = req.query;
+    if (!order_ids) {
+        return res.json([]);
+    }
+    const ids = String(order_ids).split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+    if (ids.length === 0) {
         return res.json([]);
     }
     try {
@@ -1537,7 +1541,7 @@ app.post('/api/meet/orders/consolidate', async (req, res) => {
             WHERE moi.order_id = ANY($1::int[])
             GROUP BY p.id, p.product_name, p.product_code, p.uom, b.brand_name, cat.category_name
             ORDER BY total_amount DESC
-        `, [order_ids.map(id => parseInt(id))]);
+        `, [ids]);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
