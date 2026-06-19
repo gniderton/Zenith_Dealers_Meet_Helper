@@ -1316,6 +1316,108 @@ app.post('/api/meet/complete', async (req, res) => {
     }
 });
 
+// 5. GET dashboard summary reports for Director
+app.get('/api/meet/reports/dashboard', async (req, res) => {
+    try {
+        // 1. Basic Counts Summary
+        const summaryQuery = await pool.query(`
+            SELECT 
+                (SELECT COUNT(*) FROM customers) as total_registered,
+                (SELECT COUNT(*) FROM event_checkins) as total_checked_in,
+                (SELECT COUNT(*) FROM event_checkins WHERE status = 'Arrived') as arrived,
+                (SELECT COUNT(*) FROM event_checkins WHERE status = 'Engaged') as engaged,
+                (SELECT COUNT(*) FROM event_checkins WHERE status = 'Ready for Checkout') as ready_for_checkout,
+                (SELECT COUNT(*) FROM event_checkins WHERE status = 'Completed') as completed,
+                (SELECT COALESCE(SUM(total_amount), 0) FROM meet_orders) as total_order_value,
+                (SELECT COUNT(*) FROM event_checkins WHERE gifts_collected = true) as gifts_collected
+        `);
+        const summary = summaryQuery.rows[0];
+
+        // 2. DSE Performance Summary
+        const dseQuery = await pool.query(`
+            SELECT 
+                e.id as employee_id,
+                e.employee_name,
+                e.employee_code,
+                COUNT(DISTINCT ec.id) as assigned_count,
+                COUNT(DISTINCT CASE WHEN ec.status = 'Completed' THEN ec.id END) as completed_count,
+                COALESCE(SUM(mo.total_amount), 0) as total_order_value
+            FROM employees e
+            LEFT JOIN event_checkins ec ON e.id = ec.employee_id
+            LEFT JOIN meet_orders mo ON e.id = mo.employee_id AND ec.customer_id = mo.customer_id
+            WHERE e.status = 'Active' OR e.id IN (SELECT DISTINCT employee_id FROM event_checkins)
+            GROUP BY e.id, e.employee_name, e.employee_code
+            ORDER BY total_order_value DESC
+        `);
+
+        // 3. Hourly Trends (for charts)
+        const hourlyQuery = await pool.query(`
+            WITH hours AS (
+                SELECT generate_series(
+                    date_trunc('day', CURRENT_TIMESTAMP) + interval '8 hours',
+                    date_trunc('day', CURRENT_TIMESTAMP) + interval '20 hours',
+                    interval '1 hour'
+                ) as hr
+            )
+            SELECT 
+                to_char(h.hr, 'HH24:MI') as hour_label,
+                COUNT(DISTINCT ec.id) as checkins_count,
+                COALESCE(SUM(mo.total_amount), 0) as order_value
+            FROM hours h
+            LEFT JOIN event_checkins ec ON date_trunc('hour', ec.checked_in_at) = h.hr
+            LEFT JOIN meet_orders mo ON date_trunc('hour', mo.synced_at) = h.hr
+            GROUP BY h.hr
+            ORDER BY h.hr ASC
+        `);
+
+        // 4. Recent Orders
+        const recentOrdersQuery = await pool.query(`
+            SELECT 
+                mo.id as order_id,
+                c.customer_name,
+                c.customer_code,
+                e.employee_name as assigned_employee,
+                mo.total_amount,
+                mo.synced_at
+            FROM meet_orders mo
+            JOIN customers c ON mo.customer_id = c.id
+            LEFT JOIN employees e ON mo.employee_id = e.id
+            ORDER BY mo.synced_at DESC
+            LIMIT 10
+        `);
+
+        res.json({
+            summary: {
+                total_registered: parseInt(summary.total_registered) || 0,
+                total_checked_in: parseInt(summary.total_checked_in) || 0,
+                arrived: parseInt(summary.arrived) || 0,
+                engaged: parseInt(summary.engaged) || 0,
+                ready_for_checkout: parseInt(summary.ready_for_checkout) || 0,
+                completed: parseInt(summary.completed) || 0,
+                total_order_value: parseFloat(summary.total_order_value) || 0,
+                gifts_collected: parseInt(summary.gifts_collected) || 0
+            },
+            dse_performance: dseQuery.rows.map(row => ({
+                ...row,
+                assigned_count: parseInt(row.assigned_count) || 0,
+                completed_count: parseInt(row.completed_count) || 0,
+                total_order_value: parseFloat(row.total_order_value) || 0
+            })),
+            hourly_trends: hourlyQuery.rows.map(row => ({
+                ...row,
+                checkins_count: parseInt(row.checkins_count) || 0,
+                order_value: parseFloat(row.order_value) || 0
+            })),
+            recent_orders: recentOrdersQuery.rows.map(row => ({
+                ...row,
+                total_amount: parseFloat(row.total_amount) || 0
+            }))
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
