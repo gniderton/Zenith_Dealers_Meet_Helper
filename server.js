@@ -1461,6 +1461,89 @@ app.get('/api/meet/reports/dashboard', async (req, res) => {
     }
 });
 
+// 6. GET all meet orders (headers)
+app.get('/api/meet/orders', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                mo.id as order_id,
+                c.customer_name,
+                c.customer_code,
+                e.employee_name as assigned_employee,
+                mo.total_amount,
+                mo.synced_at
+            FROM meet_orders mo
+            JOIN customers c ON mo.customer_id = c.id
+            LEFT JOIN employees e ON mo.employee_id = e.id
+            ORDER BY mo.synced_at DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 7. GET lines for a specific order
+app.get('/api/meet/orders/:order_id/lines', async (req, res) => {
+    const { order_id } = req.params;
+    try {
+        const result = await pool.query(`
+            SELECT 
+                moi.id as line_id,
+                p.product_name,
+                p.product_code,
+                p.uom,
+                p.mrp,
+                b.brand_name,
+                cat.category_name,
+                moi.quantity,
+                moi.rate,
+                moi.amount
+            FROM meet_order_items moi
+            JOIN products p ON moi.product_id = p.id
+            LEFT JOIN brands b ON p.brand_id = b.id
+            LEFT JOIN categories cat ON p.category_id = cat.id
+            WHERE moi.order_id = $1
+            ORDER BY p.product_name ASC
+        `, [parseInt(order_id)]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 8. POST consolidate selected orders product summary
+app.post('/api/meet/orders/consolidate', async (req, res) => {
+    const { order_ids } = req.body;
+    if (!Array.isArray(order_ids) || order_ids.length === 0) {
+        return res.json([]);
+    }
+    try {
+        const result = await pool.query(`
+            SELECT 
+                p.id as product_id,
+                p.product_name,
+                p.product_code,
+                p.uom,
+                b.brand_name,
+                cat.category_name,
+                SUM(moi.quantity)::int as total_quantity,
+                AVG(moi.rate)::numeric(15,2) as avg_rate,
+                SUM(moi.amount)::numeric(15,2) as total_amount
+            FROM meet_order_items moi
+            JOIN products p ON moi.product_id = p.id
+            LEFT JOIN brands b ON p.brand_id = b.id
+            LEFT JOIN categories cat ON p.category_id = cat.id
+            WHERE moi.order_id = ANY($1::int[])
+            GROUP BY p.id, p.product_name, p.product_code, p.uom, b.brand_name, cat.category_name
+            ORDER BY total_amount DESC
+        `, [order_ids.map(id => parseInt(id))]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
