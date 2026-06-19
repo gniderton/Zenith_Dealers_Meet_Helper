@@ -1230,6 +1230,57 @@ app.post('/api/meet/assign', async (req, res) => {
     }
 });
 
+// 2b. Release employee and customer assignment (no order placed)
+app.post('/api/meet/release', async (req, res) => {
+    const { checkin_id } = req.body;
+    if (!checkin_id) {
+        return res.status(400).json({ error: 'checkin_id is required' });
+    }
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 1. Fetch current employee_id assigned to this checkin
+        const checkinQuery = await client.query(
+            'SELECT employee_id, status FROM event_checkins WHERE id = $1',
+            [checkin_id]
+        );
+
+        if (checkinQuery.rowCount === 0) {
+            throw new Error('Checkin record not found');
+        }
+
+        const { employee_id, status } = checkinQuery.rows[0];
+        if (status !== 'Engaged') {
+            throw new Error(`Cannot release check-in with status '${status}'. Must be 'Engaged'.`);
+        }
+
+        // 2. Reset checkin status back to 'Arrived' and clear assignment
+        await client.query(
+            `UPDATE event_checkins 
+             SET employee_id = NULL, status = 'Arrived', assigned_at = NULL, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1`,
+            [checkin_id]
+        );
+
+        // 3. Free up employee (make them Active again)
+        if (employee_id) {
+            await client.query(
+                `UPDATE employees SET status = 'Active', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+                [employee_id]
+            );
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Customer and Guide successfully released' });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
 // 3. Sync punched order from mobile and free up the employee
 app.post('/api/meet/orders', async (req, res) => {
     console.log("POST /api/meet/orders received body:", JSON.stringify(req.body, null, 2));
