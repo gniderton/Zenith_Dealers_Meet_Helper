@@ -109,7 +109,7 @@ DECLARE
     b_code VARCHAR(3);
     c_code VARCHAR(3);
     p_seq INT;
-    p_code VARCHAR(3);
+    p_code VARCHAR(10);
 BEGIN
     SELECT brand_code INTO b_code FROM brands WHERE id = NEW.brand_id;
     IF b_code IS NULL THEN b_code := '000'; END IF;
@@ -118,7 +118,7 @@ BEGIN
     IF c_code IS NULL THEN c_code := '000'; END IF;
 
     p_seq := nextval('product_code_seq');
-    p_code := LPAD(p_seq::text, 3, '0');
+    p_code := LPAD(p_seq::text, 5, '0');
 
     NEW.product_code := b_code || c_code || p_code;
     RETURN NEW;
