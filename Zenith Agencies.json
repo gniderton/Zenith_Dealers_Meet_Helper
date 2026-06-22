@@ -25,6 +25,10 @@
       {
         "id": "Sales Orders",
         "isDefault": false
+      },
+      {
+        "id": "Settings",
+        "isDefault": false
       }
     ],
     "publishedPages": [
@@ -644,6 +648,17 @@
                               "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
                               "menuItems": {},
                               "onClick": "{{ navigateTo('Sales Orders') }}"
+                            },
+                            "btnSettings": {
+                              "id": "btnSettings",
+                              "index": 4,
+                              "label": "Settings",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Settings') }}"
                             }
                           },
                           "dynamicTriggerPathList": [
@@ -4694,6 +4709,17 @@
                               "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
                               "menuItems": {},
                               "onClick": "{{ navigateTo('Sales Orders') }}"
+                            },
+                            "btnSettings": {
+                              "id": "btnSettings",
+                              "index": 4,
+                              "label": "Settings",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Settings') }}"
                             }
                           },
                           "dynamicTriggerPathList": [
@@ -14853,6 +14879,17 @@
                               "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
                               "menuItems": {},
                               "onClick": "{{ navigateTo('Sales Orders') }}"
+                            },
+                            "btnSettings": {
+                              "id": "btnSettings",
+                              "index": 4,
+                              "label": "Settings",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Settings') }}"
                             }
                           },
                           "dynamicTriggerPathList": [
@@ -15272,6 +15309,17 @@
                               "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
                               "menuItems": {},
                               "onClick": "{{ navigateTo('Sales Orders') }}"
+                            },
+                            "btnSettings": {
+                              "id": "btnSettings",
+                              "index": 4,
+                              "label": "Settings",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Settings') }}"
                             }
                           },
                           "dynamicTriggerPathList": [
@@ -19448,6 +19496,1091 @@
       },
       "gitSyncId": "6a320cc83710b8a4ffdca013_6bc0f0bf-7c59-4076-be72-d7684febeb56",
       "deleted": false
+    },
+    {
+      "unpublishedPage": {
+        "name": "Settings",
+        "slug": "settings",
+        "layouts": [
+          {
+            "viewMode": false,
+            "dsl": {
+              "widgetName": "MainContainer",
+              "backgroundColor": "#f8fafc",
+              "rightColumn": 1224,
+              "snapColumns": 64,
+              "detachFromLayout": true,
+              "widgetId": "0",
+              "topRow": 0,
+              "bottomRow": 90,
+              "containerStyle": "none",
+              "snapRows": 85,
+              "parentRowSpace": 1,
+              "type": "CANVAS_WIDGET",
+              "canExtend": true,
+              "version": 94,
+              "minHeight": 800,
+              "parentColumnSpace": 1,
+              "dynamicBindingPathList": [],
+              "leftColumn": 0,
+              "children": [
+                {
+                  "widgetName": "navHeader",
+                  "type": "CONTAINER_WIDGET",
+                  "boxShadow": "{{appsmith.store.theme.shadowSm}}",
+                  "backgroundColor": "#ffffff",
+                  "topRow": 0,
+                  "bottomRow": 5,
+                  "leftColumn": 0,
+                  "rightColumn": 64,
+                  "parentRowSpace": 10,
+                  "parentColumnSpace": 19.9375,
+                  "widgetId": "lgngbdq7wp",
+                  "parentId": "0",
+                  "renderMode": "CANVAS",
+                  "version": 1,
+                  "isVisible": "{{ appsmith.store.isAuthenticated }}",
+                  "children": [
+                    {
+                      "widgetName": "Canvas_lgngbdq7wp",
+                      "topRow": 0,
+                      "bottomRow": 5,
+                      "parentRowSpace": 1,
+                      "type": "CANVAS_WIDGET",
+                      "canExtend": false,
+                      "shouldScrollContents": false,
+                      "minHeight": 50,
+                      "parentColumnSpace": 1,
+                      "leftColumn": 0,
+                      "rightColumn": 64,
+                      "detachFromLayout": true,
+                      "widgetId": "ac4e5bsioq",
+                      "parentId": "lgngbdq7wp",
+                      "renderMode": "CANVAS",
+                      "version": 1,
+                      "children": [
+                        {
+                          "widgetName": "txtHeaderTitle",
+                          "type": "TEXT_WIDGET",
+                          "topRow": 1,
+                          "bottomRow": 4,
+                          "leftColumn": 1,
+                          "rightColumn": 18,
+                          "text": "Company Settings",
+                          "fontSize": "1.25rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#3b82f6",
+                          "alignment": "LEFT",
+                          "widgetId": "ueh2mq4f7s",
+                          "parentId": "ac4e5bsioq",
+                          "renderMode": "CANVAS",
+                          "version": 1,
+                          "isVisible": true
+                        },
+                        {
+                          "widgetName": "btnGroupPageNav",
+                          "type": "BUTTON_GROUP_WIDGET",
+                          "topRow": 1,
+                          "bottomRow": 4,
+                          "leftColumn": 20,
+                          "rightColumn": 44,
+                          "orientation": "horizontal",
+                          "buttonVariant": "PRIMARY",
+                          "isVisible": true,
+                          "widgetId": "kx7k6xt559",
+                          "parentId": "ac4e5bsioq",
+                          "renderMode": "CANVAS",
+                          "version": 1,
+                          "groupButtons": {
+                            "btnDataManagement": {
+                              "id": "btnDataManagement",
+                              "index": 0,
+                              "label": "Data Management",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Data Management') }}"
+                            },
+                            "btnMeetWorkflow": {
+                              "id": "btnMeetWorkflow",
+                              "index": 1,
+                              "label": "Meet Workflow",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Meet Workflow') }}"
+                            },
+                            "btnDashboard": {
+                              "id": "btnDashboard",
+                              "index": 2,
+                              "label": "Dashboard",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Dashboard') }}"
+                            },
+                            "btnSalesOrders": {
+                              "id": "btnSalesOrders",
+                              "index": 3,
+                              "label": "Sales Orders",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Sales Orders') }}"
+                            },
+                            "btnSettings": {
+                              "id": "btnSettings",
+                              "index": 4,
+                              "label": "Settings",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Settings') }}"
+                            }
+                          },
+                          "dynamicTriggerPathList": [
+                            {
+                              "key": "groupButtons.btnDataManagement.onClick"
+                            },
+                            {
+                              "key": "groupButtons.btnMeetWorkflow.onClick"
+                            },
+                            {
+                              "key": "groupButtons.btnDashboard.onClick"
+                            },
+                            {
+                              "key": "groupButtons.btnSalesOrders.onClick"
+                            }
+                          ],
+                          "dynamicPropertyPathList": [],
+                          "dynamicBindingPathList": []
+                        },
+                        {
+                          "widgetName": "btnHeaderLogout",
+                          "type": "BUTTON_WIDGET",
+                          "topRow": 1,
+                          "bottomRow": 4,
+                          "leftColumn": 54,
+                          "rightColumn": 63,
+                          "text": "Logout",
+                          "buttonVariant": "SECONDARY",
+                          "buttonColor": "#ef4444",
+                          "onClick": "{{ storeValue('isAuthenticated', false); navigateTo('Login'); }}",
+                          "widgetId": "znn92w2bzb",
+                          "parentId": "ac4e5bsioq",
+                          "renderMode": "CANVAS",
+                          "version": 1,
+                          "isVisible": true,
+                          "dynamicTriggerPathList": [
+                            {
+                              "key": "onClick"
+                            }
+                          ],
+                          "dynamicPropertyPathList": [],
+                          "dynamicBindingPathList": []
+                        }
+                      ]
+                    }
+                  ],
+                  "dynamicBindingPathList": [
+                    {
+                      "key": "isVisible"
+                    }
+                  ],
+                  "dynamicHeight": "AUTO_HEIGHT",
+                  "maxDynamicHeight": 9000,
+                  "minDynamicHeight": 4
+                },
+                {
+                  "widgetName": "conLeftLogo",
+                  "type": "CONTAINER_WIDGET",
+                  "boxShadow": "none",
+                  "backgroundColor": "#ffffff",
+                  "borderColor": "#e2e8f0",
+                  "borderWidth": "1",
+                  "borderRadius": "12px",
+                  "topRow": 8,
+                  "bottomRow": 55,
+                  "leftColumn": 0,
+                  "rightColumn": 24,
+                  "widgetId": "zs-6msk64r7c-0vw0b7ar8",
+                  "parentId": "0",
+                  "isVisible": true,
+                  "children": [
+                    {
+                      "widgetName": "Canvas_LeftLogo",
+                      "type": "CANVAS_WIDGET",
+                      "widgetId": "zs-hy39odo5e-7uggxql2i",
+                      "parentId": "conLeftLogo",
+                      "topRow": 0,
+                      "bottomRow": 45,
+                      "leftColumn": 0,
+                      "rightColumn": 24,
+                      "children": [
+                        {
+                          "widgetName": "lblLogoHeader",
+                          "type": "TEXT_WIDGET",
+                          "text": "Logo Branding Preview",
+                          "fontSize": "1.125rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#0f172a",
+                          "topRow": 2,
+                          "bottomRow": 4,
+                          "leftColumn": 2,
+                          "rightColumn": 22,
+                          "widgetId": "zs-z4f4ksmub-kbj9s2mpc"
+                        },
+                        {
+                          "widgetName": "imgLogoPreview",
+                          "type": "IMAGE_WIDGET",
+                          "image": "{{ apiGetSettings.data.logo_url || \"\" }}",
+                          "defaultImage": "https://assets.appsmith.com/widgets/default.png",
+                          "objectFit": "contain",
+                          "topRow": 6,
+                          "bottomRow": 22,
+                          "leftColumn": 2,
+                          "rightColumn": 22,
+                          "widgetId": "zs-hb421afk1-hy4ckhbky",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "image"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblLogoNotice",
+                          "type": "TEXT_WIDGET",
+                          "text": "<div style='font-family: sans-serif; font-size: 11px; color: #64748b; line-height: 1.4; text-align: center;'>\n  Provide a valid image URL or a Base64 encoded string starting with <b>data:image/</b> to update the logo on official print documents.\n</div>",
+                          "fontSize": "0.75rem",
+                          "topRow": 24,
+                          "bottomRow": 32,
+                          "leftColumn": 2,
+                          "rightColumn": 22,
+                          "widgetId": "zs-jxr029nnj-xmuyyzfrn"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "widgetName": "conRightForm",
+                  "type": "CONTAINER_WIDGET",
+                  "boxShadow": "none",
+                  "backgroundColor": "#ffffff",
+                  "borderColor": "#e2e8f0",
+                  "borderWidth": "1",
+                  "borderRadius": "12px",
+                  "topRow": 8,
+                  "bottomRow": 70,
+                  "leftColumn": 25,
+                  "rightColumn": 64,
+                  "widgetId": "zs-pznkudqn4-fzui5ucx7",
+                  "parentId": "0",
+                  "isVisible": true,
+                  "children": [
+                    {
+                      "widgetName": "Canvas_RightForm",
+                      "type": "CANVAS_WIDGET",
+                      "widgetId": "zs-iwnwlvomy-74r5nqmf9",
+                      "parentId": "conRightForm",
+                      "topRow": 0,
+                      "bottomRow": 60,
+                      "leftColumn": 0,
+                      "rightColumn": 39,
+                      "children": [
+                        {
+                          "widgetName": "lblFormHeader",
+                          "type": "TEXT_WIDGET",
+                          "text": "Company Details Form",
+                          "fontSize": "1.125rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#0f172a",
+                          "topRow": 2,
+                          "bottomRow": 4,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-l1emcj51p-bmd2xbd7o"
+                        },
+                        {
+                          "widgetName": "lblCompanyName",
+                          "type": "TEXT_WIDGET",
+                          "text": "Company Name *",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 6,
+                          "bottomRow": 8,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-r6wxig5tk-x5t6pycpm"
+                        },
+                        {
+                          "widgetName": "inpCompanyName",
+                          "type": "INPUT_WIDGET_V2",
+                          "defaultText": "{{ apiGetSettings.data.company_name || \"\" }}",
+                          "placeholderText": "Enter official company name",
+                          "topRow": 8,
+                          "bottomRow": 12,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-i42w3i5j6-b2tfsjg9p",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblCompanyAddress",
+                          "type": "TEXT_WIDGET",
+                          "text": "Registered Address *",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 13,
+                          "bottomRow": 15,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-i5w7of9ff-5xyfxc6q9"
+                        },
+                        {
+                          "widgetName": "inpCompanyAddress",
+                          "type": "INPUT_WIDGET_V2",
+                          "inputType": "TEXT",
+                          "defaultText": "{{ apiGetSettings.data.address || \"\" }}",
+                          "placeholderText": "Enter full address",
+                          "topRow": 15,
+                          "bottomRow": 21,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-xd8pcdtwh-q5thkxilj",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblCompanyGSTIN",
+                          "type": "TEXT_WIDGET",
+                          "text": "GSTIN *",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 22,
+                          "bottomRow": 24,
+                          "leftColumn": 2,
+                          "rightColumn": 19,
+                          "widgetId": "zs-l2l87chqk-i6omb10sr"
+                        },
+                        {
+                          "widgetName": "inpCompanyGSTIN",
+                          "type": "INPUT_WIDGET_V2",
+                          "defaultText": "{{ apiGetSettings.data.gstin || \"\" }}",
+                          "placeholderText": "Enter GSTIN",
+                          "topRow": 24,
+                          "bottomRow": 28,
+                          "leftColumn": 2,
+                          "rightColumn": 19,
+                          "widgetId": "zs-r6snp8lvi-hscwh8luj",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblCompanyEmail",
+                          "type": "TEXT_WIDGET",
+                          "text": "Email Address",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 22,
+                          "bottomRow": 24,
+                          "leftColumn": 20,
+                          "rightColumn": 37,
+                          "widgetId": "zs-qoctdqn9b-bnv68rcyc"
+                        },
+                        {
+                          "widgetName": "inpCompanyEmail",
+                          "type": "INPUT_WIDGET_V2",
+                          "defaultText": "{{ apiGetSettings.data.email || \"\" }}",
+                          "placeholderText": "contact@company.com",
+                          "topRow": 24,
+                          "bottomRow": 28,
+                          "leftColumn": 20,
+                          "rightColumn": 37,
+                          "widgetId": "zs-mm5ojfj7i-iifg86hpt",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblCompanyContact",
+                          "type": "TEXT_WIDGET",
+                          "text": "Contact Number",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 29,
+                          "bottomRow": 31,
+                          "leftColumn": 2,
+                          "rightColumn": 19,
+                          "widgetId": "zs-npq5tq9i2-4zu8a7eos"
+                        },
+                        {
+                          "widgetName": "inpCompanyContact",
+                          "type": "INPUT_WIDGET_V2",
+                          "defaultText": "{{ apiGetSettings.data.contact_no || \"\" }}",
+                          "placeholderText": "Contact No",
+                          "topRow": 31,
+                          "bottomRow": 35,
+                          "leftColumn": 2,
+                          "rightColumn": 19,
+                          "widgetId": "zs-w3upfhhj0-1lviyiaat",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblCompanyLogoUrl",
+                          "type": "TEXT_WIDGET",
+                          "text": "Branding Logo (URL or Base64)",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 36,
+                          "bottomRow": 38,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-sudf8ujfc-508vng0v0"
+                        },
+                        {
+                          "widgetName": "inpCompanyLogoUrl",
+                          "type": "INPUT_WIDGET_V2",
+                          "defaultText": "{{ apiGetSettings.data.logo_url || \"\" }}",
+                          "placeholderText": "https://... or data:image/png;base64,...",
+                          "topRow": 38,
+                          "bottomRow": 44,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-u3spgmboz-bywyt25w3",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "btnSaveSettings",
+                          "type": "BUTTON_WIDGET",
+                          "text": "💾 Save Company Settings",
+                          "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                          "topRow": 48,
+                          "bottomRow": 52,
+                          "leftColumn": 2,
+                          "rightColumn": 20,
+                          "onClick": "{{ apiSaveSettings.run(() => { showAlert('Company settings successfully updated!', 'success'); apiGetSettings.run(); }, (err) => { showAlert('Failed to update settings: ' + err.toString(), 'error'); }) }}",
+                          "widgetId": "zs-j7glqjw58-jbg20p744",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "buttonColor"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layoutOnLoadActions": [
+              [
+                {
+                  "id": "Settings_AuthCheck.checkAuth",
+                  "name": "AuthCheck.checkAuth",
+                  "collectionId": "Settings_AuthCheck",
+                  "confirmBeforeExecute": false,
+                  "pluginType": "JS",
+                  "jsonPathKeys": [
+                    "() => {\n  if (!appsmith.store.isAuthenticated) {\n    navigateTo('Login');\n  }\n}"
+                  ],
+                  "timeoutInMillisecond": 10000
+                },
+                {
+                  "id": "Settings_apiGetSettings",
+                  "name": "apiGetSettings",
+                  "confirmBeforeExecute": false,
+                  "pluginType": "API",
+                  "jsonPathKeys": [],
+                  "timeoutInMillisecond": 10000
+                }
+              ]
+            ],
+            "layoutOnLoadActionErrors": [],
+            "validOnPageLoadActions": true,
+            "id": "Settings",
+            "deleted": false,
+            "policies": [],
+            "userPermissions": []
+          }
+        ],
+        "userPermissions": [],
+        "policyMap": {},
+        "isHidden": false
+      },
+      "publishedPage": {
+        "name": "Settings",
+        "slug": "settings",
+        "layouts": [
+          {
+            "viewMode": false,
+            "dsl": {
+              "widgetName": "MainContainer",
+              "backgroundColor": "#f8fafc",
+              "rightColumn": 1224,
+              "snapColumns": 64,
+              "detachFromLayout": true,
+              "widgetId": "0",
+              "topRow": 0,
+              "bottomRow": 90,
+              "containerStyle": "none",
+              "snapRows": 85,
+              "parentRowSpace": 1,
+              "type": "CANVAS_WIDGET",
+              "canExtend": true,
+              "version": 94,
+              "minHeight": 800,
+              "parentColumnSpace": 1,
+              "dynamicBindingPathList": [],
+              "leftColumn": 0,
+              "children": [
+                {
+                  "widgetName": "navHeader",
+                  "type": "CONTAINER_WIDGET",
+                  "boxShadow": "{{appsmith.store.theme.shadowSm}}",
+                  "backgroundColor": "#ffffff",
+                  "topRow": 0,
+                  "bottomRow": 5,
+                  "leftColumn": 0,
+                  "rightColumn": 64,
+                  "parentRowSpace": 10,
+                  "parentColumnSpace": 19.9375,
+                  "widgetId": "lgngbdq7wp",
+                  "parentId": "0",
+                  "renderMode": "CANVAS",
+                  "version": 1,
+                  "isVisible": "{{ appsmith.store.isAuthenticated }}",
+                  "children": [
+                    {
+                      "widgetName": "Canvas_lgngbdq7wp",
+                      "topRow": 0,
+                      "bottomRow": 5,
+                      "parentRowSpace": 1,
+                      "type": "CANVAS_WIDGET",
+                      "canExtend": false,
+                      "shouldScrollContents": false,
+                      "minHeight": 50,
+                      "parentColumnSpace": 1,
+                      "leftColumn": 0,
+                      "rightColumn": 64,
+                      "detachFromLayout": true,
+                      "widgetId": "ac4e5bsioq",
+                      "parentId": "lgngbdq7wp",
+                      "renderMode": "CANVAS",
+                      "version": 1,
+                      "children": [
+                        {
+                          "widgetName": "txtHeaderTitle",
+                          "type": "TEXT_WIDGET",
+                          "topRow": 1,
+                          "bottomRow": 4,
+                          "leftColumn": 1,
+                          "rightColumn": 18,
+                          "text": "Company Settings",
+                          "fontSize": "1.25rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#3b82f6",
+                          "alignment": "LEFT",
+                          "widgetId": "ueh2mq4f7s",
+                          "parentId": "ac4e5bsioq",
+                          "renderMode": "CANVAS",
+                          "version": 1,
+                          "isVisible": true
+                        },
+                        {
+                          "widgetName": "btnGroupPageNav",
+                          "type": "BUTTON_GROUP_WIDGET",
+                          "topRow": 1,
+                          "bottomRow": 4,
+                          "leftColumn": 20,
+                          "rightColumn": 44,
+                          "orientation": "horizontal",
+                          "buttonVariant": "PRIMARY",
+                          "isVisible": true,
+                          "widgetId": "kx7k6xt559",
+                          "parentId": "ac4e5bsioq",
+                          "renderMode": "CANVAS",
+                          "version": 1,
+                          "groupButtons": {
+                            "btnDataManagement": {
+                              "id": "btnDataManagement",
+                              "index": 0,
+                              "label": "Data Management",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Data Management') }}"
+                            },
+                            "btnMeetWorkflow": {
+                              "id": "btnMeetWorkflow",
+                              "index": 1,
+                              "label": "Meet Workflow",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Meet Workflow') }}"
+                            },
+                            "btnDashboard": {
+                              "id": "btnDashboard",
+                              "index": 2,
+                              "label": "Dashboard",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Dashboard') }}"
+                            },
+                            "btnSalesOrders": {
+                              "id": "btnSalesOrders",
+                              "index": 3,
+                              "label": "Sales Orders",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Sales Orders') }}"
+                            },
+                            "btnSettings": {
+                              "id": "btnSettings",
+                              "index": 4,
+                              "label": "Settings",
+                              "buttonType": "SIMPLE",
+                              "isVisible": true,
+                              "isDisabled": false,
+                              "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                              "menuItems": {},
+                              "onClick": "{{ navigateTo('Settings') }}"
+                            }
+                          },
+                          "dynamicTriggerPathList": [
+                            {
+                              "key": "groupButtons.btnDataManagement.onClick"
+                            },
+                            {
+                              "key": "groupButtons.btnMeetWorkflow.onClick"
+                            },
+                            {
+                              "key": "groupButtons.btnDashboard.onClick"
+                            },
+                            {
+                              "key": "groupButtons.btnSalesOrders.onClick"
+                            }
+                          ],
+                          "dynamicPropertyPathList": [],
+                          "dynamicBindingPathList": []
+                        },
+                        {
+                          "widgetName": "btnHeaderLogout",
+                          "type": "BUTTON_WIDGET",
+                          "topRow": 1,
+                          "bottomRow": 4,
+                          "leftColumn": 54,
+                          "rightColumn": 63,
+                          "text": "Logout",
+                          "buttonVariant": "SECONDARY",
+                          "buttonColor": "#ef4444",
+                          "onClick": "{{ storeValue('isAuthenticated', false); navigateTo('Login'); }}",
+                          "widgetId": "znn92w2bzb",
+                          "parentId": "ac4e5bsioq",
+                          "renderMode": "CANVAS",
+                          "version": 1,
+                          "isVisible": true,
+                          "dynamicTriggerPathList": [
+                            {
+                              "key": "onClick"
+                            }
+                          ],
+                          "dynamicPropertyPathList": [],
+                          "dynamicBindingPathList": []
+                        }
+                      ]
+                    }
+                  ],
+                  "dynamicBindingPathList": [
+                    {
+                      "key": "isVisible"
+                    }
+                  ],
+                  "dynamicHeight": "AUTO_HEIGHT",
+                  "maxDynamicHeight": 9000,
+                  "minDynamicHeight": 4
+                },
+                {
+                  "widgetName": "conLeftLogo",
+                  "type": "CONTAINER_WIDGET",
+                  "boxShadow": "none",
+                  "backgroundColor": "#ffffff",
+                  "borderColor": "#e2e8f0",
+                  "borderWidth": "1",
+                  "borderRadius": "12px",
+                  "topRow": 8,
+                  "bottomRow": 55,
+                  "leftColumn": 0,
+                  "rightColumn": 24,
+                  "widgetId": "zs-6msk64r7c-0vw0b7ar8",
+                  "parentId": "0",
+                  "isVisible": true,
+                  "children": [
+                    {
+                      "widgetName": "Canvas_LeftLogo",
+                      "type": "CANVAS_WIDGET",
+                      "widgetId": "zs-hy39odo5e-7uggxql2i",
+                      "parentId": "conLeftLogo",
+                      "topRow": 0,
+                      "bottomRow": 45,
+                      "leftColumn": 0,
+                      "rightColumn": 24,
+                      "children": [
+                        {
+                          "widgetName": "lblLogoHeader",
+                          "type": "TEXT_WIDGET",
+                          "text": "Logo Branding Preview",
+                          "fontSize": "1.125rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#0f172a",
+                          "topRow": 2,
+                          "bottomRow": 4,
+                          "leftColumn": 2,
+                          "rightColumn": 22,
+                          "widgetId": "zs-z4f4ksmub-kbj9s2mpc"
+                        },
+                        {
+                          "widgetName": "imgLogoPreview",
+                          "type": "IMAGE_WIDGET",
+                          "image": "{{ apiGetSettings.data.logo_url || \"\" }}",
+                          "defaultImage": "https://assets.appsmith.com/widgets/default.png",
+                          "objectFit": "contain",
+                          "topRow": 6,
+                          "bottomRow": 22,
+                          "leftColumn": 2,
+                          "rightColumn": 22,
+                          "widgetId": "zs-hb421afk1-hy4ckhbky",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "image"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblLogoNotice",
+                          "type": "TEXT_WIDGET",
+                          "text": "<div style='font-family: sans-serif; font-size: 11px; color: #64748b; line-height: 1.4; text-align: center;'>\n  Provide a valid image URL or a Base64 encoded string starting with <b>data:image/</b> to update the logo on official print documents.\n</div>",
+                          "fontSize": "0.75rem",
+                          "topRow": 24,
+                          "bottomRow": 32,
+                          "leftColumn": 2,
+                          "rightColumn": 22,
+                          "widgetId": "zs-jxr029nnj-xmuyyzfrn"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "widgetName": "conRightForm",
+                  "type": "CONTAINER_WIDGET",
+                  "boxShadow": "none",
+                  "backgroundColor": "#ffffff",
+                  "borderColor": "#e2e8f0",
+                  "borderWidth": "1",
+                  "borderRadius": "12px",
+                  "topRow": 8,
+                  "bottomRow": 70,
+                  "leftColumn": 25,
+                  "rightColumn": 64,
+                  "widgetId": "zs-pznkudqn4-fzui5ucx7",
+                  "parentId": "0",
+                  "isVisible": true,
+                  "children": [
+                    {
+                      "widgetName": "Canvas_RightForm",
+                      "type": "CANVAS_WIDGET",
+                      "widgetId": "zs-iwnwlvomy-74r5nqmf9",
+                      "parentId": "conRightForm",
+                      "topRow": 0,
+                      "bottomRow": 60,
+                      "leftColumn": 0,
+                      "rightColumn": 39,
+                      "children": [
+                        {
+                          "widgetName": "lblFormHeader",
+                          "type": "TEXT_WIDGET",
+                          "text": "Company Details Form",
+                          "fontSize": "1.125rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#0f172a",
+                          "topRow": 2,
+                          "bottomRow": 4,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-l1emcj51p-bmd2xbd7o"
+                        },
+                        {
+                          "widgetName": "lblCompanyName",
+                          "type": "TEXT_WIDGET",
+                          "text": "Company Name *",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 6,
+                          "bottomRow": 8,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-r6wxig5tk-x5t6pycpm"
+                        },
+                        {
+                          "widgetName": "inpCompanyName",
+                          "type": "INPUT_WIDGET_V2",
+                          "defaultText": "{{ apiGetSettings.data.company_name || \"\" }}",
+                          "placeholderText": "Enter official company name",
+                          "topRow": 8,
+                          "bottomRow": 12,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-i42w3i5j6-b2tfsjg9p",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblCompanyAddress",
+                          "type": "TEXT_WIDGET",
+                          "text": "Registered Address *",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 13,
+                          "bottomRow": 15,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-i5w7of9ff-5xyfxc6q9"
+                        },
+                        {
+                          "widgetName": "inpCompanyAddress",
+                          "type": "INPUT_WIDGET_V2",
+                          "inputType": "TEXT",
+                          "defaultText": "{{ apiGetSettings.data.address || \"\" }}",
+                          "placeholderText": "Enter full address",
+                          "topRow": 15,
+                          "bottomRow": 21,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-xd8pcdtwh-q5thkxilj",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblCompanyGSTIN",
+                          "type": "TEXT_WIDGET",
+                          "text": "GSTIN *",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 22,
+                          "bottomRow": 24,
+                          "leftColumn": 2,
+                          "rightColumn": 19,
+                          "widgetId": "zs-l2l87chqk-i6omb10sr"
+                        },
+                        {
+                          "widgetName": "inpCompanyGSTIN",
+                          "type": "INPUT_WIDGET_V2",
+                          "defaultText": "{{ apiGetSettings.data.gstin || \"\" }}",
+                          "placeholderText": "Enter GSTIN",
+                          "topRow": 24,
+                          "bottomRow": 28,
+                          "leftColumn": 2,
+                          "rightColumn": 19,
+                          "widgetId": "zs-r6snp8lvi-hscwh8luj",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblCompanyEmail",
+                          "type": "TEXT_WIDGET",
+                          "text": "Email Address",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 22,
+                          "bottomRow": 24,
+                          "leftColumn": 20,
+                          "rightColumn": 37,
+                          "widgetId": "zs-qoctdqn9b-bnv68rcyc"
+                        },
+                        {
+                          "widgetName": "inpCompanyEmail",
+                          "type": "INPUT_WIDGET_V2",
+                          "defaultText": "{{ apiGetSettings.data.email || \"\" }}",
+                          "placeholderText": "contact@company.com",
+                          "topRow": 24,
+                          "bottomRow": 28,
+                          "leftColumn": 20,
+                          "rightColumn": 37,
+                          "widgetId": "zs-mm5ojfj7i-iifg86hpt",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblCompanyContact",
+                          "type": "TEXT_WIDGET",
+                          "text": "Contact Number",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 29,
+                          "bottomRow": 31,
+                          "leftColumn": 2,
+                          "rightColumn": 19,
+                          "widgetId": "zs-npq5tq9i2-4zu8a7eos"
+                        },
+                        {
+                          "widgetName": "inpCompanyContact",
+                          "type": "INPUT_WIDGET_V2",
+                          "defaultText": "{{ apiGetSettings.data.contact_no || \"\" }}",
+                          "placeholderText": "Contact No",
+                          "topRow": 31,
+                          "bottomRow": 35,
+                          "leftColumn": 2,
+                          "rightColumn": 19,
+                          "widgetId": "zs-w3upfhhj0-1lviyiaat",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "lblCompanyLogoUrl",
+                          "type": "TEXT_WIDGET",
+                          "text": "Branding Logo (URL or Base64)",
+                          "fontSize": "0.875rem",
+                          "fontStyle": "BOLD",
+                          "textColor": "#334155",
+                          "topRow": 36,
+                          "bottomRow": 38,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-sudf8ujfc-508vng0v0"
+                        },
+                        {
+                          "widgetName": "inpCompanyLogoUrl",
+                          "type": "INPUT_WIDGET_V2",
+                          "defaultText": "{{ apiGetSettings.data.logo_url || \"\" }}",
+                          "placeholderText": "https://... or data:image/png;base64,...",
+                          "topRow": 38,
+                          "bottomRow": 44,
+                          "leftColumn": 2,
+                          "rightColumn": 37,
+                          "widgetId": "zs-u3spgmboz-bywyt25w3",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "defaultText"
+                            }
+                          ]
+                        },
+                        {
+                          "widgetName": "btnSaveSettings",
+                          "type": "BUTTON_WIDGET",
+                          "text": "💾 Save Company Settings",
+                          "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+                          "topRow": 48,
+                          "bottomRow": 52,
+                          "leftColumn": 2,
+                          "rightColumn": 20,
+                          "onClick": "{{ apiSaveSettings.run(() => { showAlert('Company settings successfully updated!', 'success'); apiGetSettings.run(); }, (err) => { showAlert('Failed to update settings: ' + err.toString(), 'error'); }) }}",
+                          "widgetId": "zs-j7glqjw58-jbg20p744",
+                          "dynamicBindingPathList": [
+                            {
+                              "key": "buttonColor"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "layoutOnLoadActions": [
+              [
+                {
+                  "id": "Settings_apiGetSettings",
+                  "name": "apiGetSettings",
+                  "confirmBeforeExecute": false,
+                  "pluginType": "API",
+                  "jsonPathKeys": [],
+                  "timeoutInMillisecond": 10000
+                }
+              ]
+            ],
+            "layoutOnLoadActionErrors": [],
+            "validOnPageLoadActions": true,
+            "id": "Settings",
+            "deleted": false,
+            "policies": [],
+            "userPermissions": []
+          }
+        ],
+        "userPermissions": [],
+        "policyMap": {},
+        "isHidden": false
+      },
+      "gitSyncId": "69a80abb79ac426a29eb8838_zs-6s4q3c076-wumkjjbdd",
+      "deleted": false
     }
   ],
   "actionList": [
@@ -22324,6 +23457,164 @@
       },
       "gitSyncId": "sdkwb2h5vn",
       "id": "Sales Orders_AuthCheck.checkAuth",
+      "deleted": false
+    },
+    {
+      "pluginType": "API",
+      "pluginId": "restapi-plugin",
+      "unpublishedAction": {
+        "name": "apiGetSettings",
+        "datasource": {
+          "name": "RenderCloud",
+          "pluginId": "restapi-plugin",
+          "messages": [],
+          "isAutoGenerated": false,
+          "id": "RenderCloud",
+          "deleted": false
+        },
+        "pageId": "Settings",
+        "actionConfiguration": {
+          "timeoutInMillisecond": 10000,
+          "paginationType": "NONE",
+          "path": "/api/meet/settings",
+          "headers": [],
+          "autoGeneratedHeaders": [],
+          "encodeParamsToggle": true,
+          "queryParameters": [],
+          "body": "",
+          "bodyFormData": [],
+          "httpMethod": "GET",
+          "httpVersion": "HTTP11"
+        },
+        "runBehaviour": "ON_PAGE_LOAD",
+        "dynamicBindingPathList": [],
+        "isValid": true,
+        "invalids": [],
+        "messages": [],
+        "jsonPathKeys": [],
+        "userSetOnLoad": true,
+        "confirmBeforeExecute": false
+      },
+      "publishedAction": {
+        "name": "apiGetSettings",
+        "datasource": {
+          "name": "RenderCloud",
+          "pluginId": "restapi-plugin",
+          "messages": [],
+          "isAutoGenerated": false,
+          "id": "RenderCloud",
+          "deleted": false
+        },
+        "pageId": "Settings",
+        "actionConfiguration": {
+          "timeoutInMillisecond": 10000,
+          "paginationType": "NONE",
+          "path": "/api/meet/settings",
+          "headers": [],
+          "autoGeneratedHeaders": [],
+          "encodeParamsToggle": true,
+          "queryParameters": [],
+          "body": "",
+          "bodyFormData": [],
+          "httpMethod": "GET",
+          "httpVersion": "HTTP11"
+        },
+        "runBehaviour": "ON_PAGE_LOAD",
+        "dynamicBindingPathList": [],
+        "isValid": true,
+        "invalids": [],
+        "messages": [],
+        "jsonPathKeys": [],
+        "userSetOnLoad": true,
+        "confirmBeforeExecute": false
+      },
+      "gitSyncId": "69a80abb79ac426a29eb8838_zs-ykquij762-z6vker2m9",
+      "deleted": false
+    },
+    {
+      "pluginType": "API",
+      "pluginId": "restapi-plugin",
+      "unpublishedAction": {
+        "name": "apiSaveSettings",
+        "datasource": {
+          "name": "RenderCloud",
+          "pluginId": "restapi-plugin",
+          "messages": [],
+          "isAutoGenerated": false,
+          "id": "RenderCloud",
+          "deleted": false
+        },
+        "pageId": "Settings",
+        "actionConfiguration": {
+          "timeoutInMillisecond": 15000,
+          "paginationType": "NONE",
+          "path": "/api/meet/settings",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "autoGeneratedHeaders": [],
+          "encodeParamsToggle": true,
+          "queryParameters": [],
+          "body": "{\n  \"company_name\": \"{{inpCompanyName.text}}\",\n  \"address\": \"{{inpCompanyAddress.text}}\",\n  \"gstin\": \"{{inpCompanyGSTIN.text}}\",\n  \"email\": \"{{inpCompanyEmail.text}}\",\n  \"contact_no\": \"{{inpCompanyContact.text}}\",\n  \"logo_url\": \"{{inpCompanyLogoUrl.text}}\"\n}",
+          "bodyFormData": [],
+          "httpMethod": "POST",
+          "httpVersion": "HTTP11"
+        },
+        "dynamicBindingPathList": [
+          {
+            "key": "actionConfiguration.body"
+          }
+        ],
+        "isValid": true,
+        "invalids": [],
+        "messages": [],
+        "jsonPathKeys": [],
+        "confirmBeforeExecute": false
+      },
+      "publishedAction": {
+        "name": "apiSaveSettings",
+        "datasource": {
+          "name": "RenderCloud",
+          "pluginId": "restapi-plugin",
+          "messages": [],
+          "isAutoGenerated": false,
+          "id": "RenderCloud",
+          "deleted": false
+        },
+        "pageId": "Settings",
+        "actionConfiguration": {
+          "timeoutInMillisecond": 15000,
+          "paginationType": "NONE",
+          "path": "/api/meet/settings",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "autoGeneratedHeaders": [],
+          "encodeParamsToggle": true,
+          "queryParameters": [],
+          "body": "{\n  \"company_name\": \"{{inpCompanyName.text}}\",\n  \"address\": \"{{inpCompanyAddress.text}}\",\n  \"gstin\": \"{{inpCompanyGSTIN.text}}\",\n  \"email\": \"{{inpCompanyEmail.text}}\",\n  \"contact_no\": \"{{inpCompanyContact.text}}\",\n  \"logo_url\": \"{{inpCompanyLogoUrl.text}}\"\n}",
+          "bodyFormData": [],
+          "httpMethod": "POST",
+          "httpVersion": "HTTP11"
+        },
+        "dynamicBindingPathList": [
+          {
+            "key": "actionConfiguration.body"
+          }
+        ],
+        "isValid": true,
+        "invalids": [],
+        "messages": [],
+        "jsonPathKeys": [],
+        "confirmBeforeExecute": false
+      },
+      "gitSyncId": "69a80abb79ac426a29eb8838_zs-ykfpf8hdz-jjxd1xd57",
       "deleted": false
     }
   ],

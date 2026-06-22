@@ -1073,6 +1073,33 @@ app.get('/api/meet/settings', async (req, res) => {
     }
 });
 
+// POST meet event settings for branding (save or update settings)
+app.post('/api/meet/settings', async (req, res) => {
+    const settings = req.body;
+    if (!settings || typeof settings !== 'object') {
+        return res.status(400).json({ error: 'Invalid settings object payload' });
+    }
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        for (const [key, value] of Object.entries(settings)) {
+            await client.query(`
+                INSERT INTO meet_settings (key, value)
+                VALUES ($1, $2)
+                ON CONFLICT (key)
+                DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+            `, [key, String(value)]);
+        }
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Settings successfully updated' });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
 // GET aggregated order details and visit metrics by checkin_id for PDF print
 app.get('/api/meet/orders/by-checkin/:checkin_id', async (req, res) => {
     const { checkin_id } = req.params;
