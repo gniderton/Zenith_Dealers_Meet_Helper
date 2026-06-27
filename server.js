@@ -890,6 +890,139 @@ app.delete('/api/:entity', async (req, res) => {
 });
 
 // ==========================================
+// BULK PRODUCT PRICING ENDPOINTS
+// ==========================================
+
+// GET template containing all active products with current prices for editing
+app.get('/api/products/price-template', async (req, res) => {
+    try {
+        const queryResult = await pool.query(`
+            SELECT id, product_code, product_name, mrp, purchase_rate, distributor_rate, wholesale_rate, dealer_rate, retail_rate
+            FROM products
+            WHERE is_active = true
+            ORDER BY product_name ASC
+        `);
+
+        // Format column headers nicely for user-friendliness and match it in POST
+        const templateData = queryResult.rows.map(row => ({
+            "Product ID": row.id,
+            "Product Code": row.product_code,
+            "Product Name": row.product_name,
+            "MRP": parseFloat(row.mrp || 0),
+            "Purchase Rate": parseFloat(row.purchase_rate || 0),
+            "Distributor Rate": parseFloat(row.distributor_rate || 0),
+            "Wholesale Rate": parseFloat(row.wholesale_rate || 0),
+            "Dealer Rate": parseFloat(row.dealer_rate || 0),
+            "Retail Rate": parseFloat(row.retail_rate || 0)
+        }));
+
+        // If no products in database, provide a dummy example row so template is not empty
+        if (templateData.length === 0) {
+            templateData.push({
+                "Product ID": "Example: 1",
+                "Product Code": "DM00100001",
+                "Product Name": "DM_FRUIT DRINKS_GREEN APPLE_240_ML",
+                "MRP": 50.00,
+                "Purchase Rate": 24.55861,
+                "Distributor Rate": 38.10000,
+                "Wholesale Rate": 38.10000,
+                "Dealer Rate": 38.10000,
+                "Retail Rate": 47.62000
+            });
+        }
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(templateData);
+        XLSX.utils.book_append_sheet(wb, ws, "Product Prices");
+        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+        res.setHeader('Content-Disposition', 'attachment; filename="product_pricing_template.xlsx"');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to generate pricing template: ' + err.message });
+    }
+});
+
+// POST to bulk update product prices from parsed template array
+app.post('/api/products/bulk-price-update', async (req, res) => {
+    const rawBody = parseRaw2DArray(req.body);
+    if (!Array.isArray(rawBody)) {
+        return res.status(400).json({ error: 'Expected a JSON array of objects' });
+    }
+
+    const client = await pool.connect();
+    try {
+        let updatedCount = 0;
+        let errors = [];
+
+        await client.query('BEGIN');
+
+        for (let index = 0; index < rawBody.length; index++) {
+            const row = rawBody[index];
+            const rowNumber = index + 1;
+
+            try {
+                // Support multiple possible header formats for flexibility
+                const id = row["Product ID"] || row.id || row.ID || row["Product ID (Only for updates)"];
+                const mrp = row["MRP"] || row.mrp || row.MRP;
+                const purchase_rate = row["Purchase Rate"] || row.purchase_rate || row.PurchaseRate;
+                const distributor_rate = row["Distributor Rate"] || row.distributor_rate || row.DistributorRate;
+                const wholesale_rate = row["Wholesale Rate"] || row.wholesale_rate || row.WholesaleRate;
+                const dealer_rate = row["Dealer Rate"] || row.dealer_rate || row.DealerRate;
+                const retail_rate = row["Retail Rate"] || row.retail_rate || row.RetailRate;
+
+                if (!id) {
+                    throw new Error("Missing Product ID");
+                }
+
+                // Check if product exists
+                const check = await client.query('SELECT id FROM products WHERE id = $1', [id]);
+                if (check.rows.length === 0) {
+                    throw new Error(`Product with ID ${id} not found`);
+                }
+
+                await client.query(
+                    `UPDATE products 
+                     SET mrp = $1, purchase_rate = $2, distributor_rate = $3, wholesale_rate = $4, dealer_rate = $5, retail_rate = $6, updated_at = CURRENT_TIMESTAMP 
+                     WHERE id = $7`,
+                    [
+                        parseFloat(mrp || 0),
+                        parseFloat(purchase_rate || 0),
+                        parseFloat(distributor_rate || 0),
+                        parseFloat(wholesale_rate || 0),
+                        parseFloat(dealer_rate || 0),
+                        parseFloat(retail_rate || 0),
+                        id
+                    ]
+                );
+                updatedCount++;
+            } catch (err) {
+                errors.push({ row: rowNumber, error: err.message, data: row });
+            }
+        }
+
+        if (errors.length > 0 && updatedCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'All updates failed', errors });
+        }
+
+        await client.query('COMMIT');
+        res.json({
+            message: `Successfully updated ${updatedCount} products pricing.`,
+            updatedCount,
+            failedCount: errors.length,
+            errors: errors.length > 0 ? errors : undefined
+        });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: 'Database transaction error: ' + err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// ==========================================
 // DEALERS MEET EVENT ENDPOINTS
 // ==========================================
 
